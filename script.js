@@ -19,12 +19,17 @@ class IPTVPlayer {
         this.currentMovieCategory = null;
         this.currentSeriesCategory = null;
         
+        // Favorites system
+        this.favorites = [];
+        this.currentSidePlayer = null;
+        
         this.init();
     }
 
     init() {
         this.setupEventListeners();
         this.loadStoredConnection();
+        this.loadFavorites();
         
         // Ensure only connection-selector is shown initially
         this.showScreen('connection-selector');
@@ -732,14 +737,28 @@ class IPTVPlayer {
                         ${item.year ? `<small class="text-muted">${item.year}</small>` : '<span></span>'}
                         ${item.rating ? `<small class="text-warning">⭐ ${item.rating}</small>` : ''}
                     </div>
+                    ${isLive ? `
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-outline-warning me-1 side-player-btn" onclick="event.stopPropagation(); player.playChannelSide(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-expand-arrows-alt me-1"></i>Lateral
+                        </button>
+                        <button class="btn btn-sm btn-warning" onclick="event.stopPropagation(); player.playContent(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+                            <i class="fas fa-play me-1"></i>Tela Cheia
+                        </button>
+                    </div>
+                    ` : ''}
                 </div>
             </div>
         `;
 
-        div.querySelector('.content-item').addEventListener('click', () => {
+        div.querySelector('.content-item').addEventListener('click', (e) => {
+            // Don't trigger if clicked on buttons
+            if (e.target.closest('button')) return;
+            
             if (type === 'serie') {
                 this.showSerieEpisodes(item);
-            } else {
+            } else if (type !== 'channel') {
+                // For non-channels (movies), use full player
                 this.playContent(item);
             }
         });
@@ -1116,6 +1135,350 @@ class IPTVPlayer {
             overlay.classList.add('d-none');
         }
     }
+
+    // Sistema de Favoritos
+    loadFavorites() {
+        const stored = localStorage.getItem('iptv-favorites');
+        if (stored) {
+            try {
+                this.favorites = JSON.parse(stored);
+            } catch (error) {
+                console.error('Error loading favorites:', error);
+                this.favorites = [];
+            }
+        }
+    }
+
+    saveFavorites() {
+        localStorage.setItem('iptv-favorites', JSON.stringify(this.favorites));
+    }
+
+    saveFavorite() {
+        if (!this.connectionType || !this.connectionData) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Nenhuma Conexão',
+                text: 'Conecte-se primeiro a uma lista ou servidor.',
+                background: '#1e3c72',
+                color: '#ffffff',
+                confirmButtonColor: '#ffd700'
+            });
+            return;
+        }
+
+        Swal.fire({
+            title: 'Salvar Lista',
+            text: 'Digite um nome para esta lista:',
+            input: 'text',
+            inputValue: `${this.connectionType.toUpperCase()} - ${new Date().toLocaleDateString()}`,
+            showCancelButton: true,
+            confirmButtonText: 'Salvar',
+            cancelButtonText: 'Cancelar',
+            background: '#1e3c72',
+            color: '#ffffff',
+            confirmButtonColor: '#ffd700',
+            cancelButtonColor: '#6c757d',
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'Digite um nome para a lista!'
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const favorite = {
+                    id: Date.now(),
+                    name: result.value,
+                    type: this.connectionType,
+                    data: this.connectionData,
+                    createdAt: new Date().toISOString()
+                };
+
+                this.favorites.push(favorite);
+                this.saveFavorites();
+                this.displayFavorites();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Lista Salva!',
+                    text: `"${result.value}" foi salva nos favoritos.`,
+                    timer: 2000,
+                    background: '#1e3c72',
+                    color: '#ffffff',
+                    confirmButtonColor: '#ffd700'
+                });
+            }
+        });
+    }
+
+    showFavorites() {
+        this.displayFavorites();
+        const modal = new bootstrap.Modal(document.getElementById('favorites-modal'));
+        modal.show();
+    }
+
+    displayFavorites() {
+        const container = document.getElementById('favorites-list');
+        container.innerHTML = '';
+
+        if (this.favorites.length === 0) {
+            container.innerHTML = `
+                <div class="col-12">
+                    <div class="card bg-secondary text-white">
+                        <div class="card-body text-center p-4">
+                            <i class="fas fa-heart fa-3x text-muted mb-3"></i>
+                            <h5>Nenhuma lista salva</h5>
+                            <p class="text-white-50">Conecte-se a uma lista e clique em "Salvar Lista Atual"</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        this.favorites.forEach(favorite => {
+            const div = document.createElement('div');
+            div.className = 'col-md-6';
+            
+            const typeIcon = favorite.type === 'm3u' ? 'fas fa-list' : 'fas fa-server';
+            const typeColor = favorite.type === 'm3u' ? 'primary' : 'success';
+            
+            div.innerHTML = `
+                <div class="card bg-secondary text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0">
+                                <i class="${typeIcon} me-2 text-${typeColor}"></i>
+                                ${favorite.name}
+                            </h6>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteFavorite(${favorite.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <p class="card-text small text-white-50 mb-3">
+                            <i class="fas fa-calendar me-1"></i>
+                            ${new Date(favorite.createdAt).toLocaleDateString()}
+                        </p>
+                        <button class="btn btn-warning btn-sm w-100" onclick="loadFavorite(${favorite.id})">
+                            <i class="fas fa-play me-1"></i>Conectar
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(div);
+        });
+    }
+
+    async loadFavorite(favoriteId) {
+        const favorite = this.favorites.find(f => f.id === favoriteId);
+        if (!favorite) return;
+
+        // Close favorites modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('favorites-modal'));
+        if (modal) modal.hide();
+
+        this.showLoading(true);
+
+        try {
+            this.connectionType = favorite.type;
+            this.connectionData = favorite.data;
+
+            if (favorite.type === 'xtream') {
+                await this.loadXtreamCategories();
+                this.displayInitialContent();
+            } else {
+                this.parseM3U(this.connectionData.content);
+                if (this.connectionData.epgUrl) {
+                    await this.loadEPGFromURL(this.connectionData.epgUrl);
+                }
+                this.displayContent();
+            }
+
+            this.showScreen('main-screen');
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Lista Carregada!',
+                text: `"${favorite.name}" foi carregada com sucesso.`,
+                timer: 2000,
+                background: '#1e3c72',
+                color: '#ffffff',
+                confirmButtonColor: '#ffd700'
+            });
+
+        } catch (error) {
+            console.error('Error loading favorite:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro ao Carregar',
+                text: 'Erro ao conectar com a lista salva.',
+                background: '#1e3c72',
+                color: '#ffffff',
+                confirmButtonColor: '#ffd700'
+            });
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    deleteFavorite(favoriteId) {
+        const favorite = this.favorites.find(f => f.id === favoriteId);
+        if (!favorite) return;
+
+        Swal.fire({
+            title: 'Excluir Favorito?',
+            text: `Tem certeza que deseja excluir "${favorite.name}"?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sim, excluir',
+            cancelButtonText: 'Cancelar',
+            background: '#1e3c72',
+            color: '#ffffff'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                this.favorites = this.favorites.filter(f => f.id !== favoriteId);
+                this.saveFavorites();
+                this.displayFavorites();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Excluído!',
+                    text: 'Favorito foi removido.',
+                    timer: 1500,
+                    background: '#1e3c72',
+                    color: '#ffffff',
+                    confirmButtonColor: '#ffd700'
+                });
+            }
+        });
+    }
+
+    // Player Lateral para Canais
+    playChannelSide(channel) {
+        const sidePlayer = document.getElementById('side-player');
+        const contentArea = document.getElementById('main-content-area');
+        const video = document.getElementById('side-video-player');
+        const title = document.getElementById('side-player-title');
+
+        // Show side player
+        sidePlayer.classList.remove('d-none');
+        
+        // Adjust content area
+        contentArea.classList.remove('col-lg-10', 'col-md-9');
+        contentArea.classList.add('col-lg-7', 'col-md-5');
+
+        title.textContent = channel.name;
+
+        // Stop current player if exists
+        if (this.currentSidePlayer) {
+            this.currentSidePlayer.destroy();
+        }
+
+        // Initialize HLS player for side player
+        if (Hls.isSupported()) {
+            this.currentSidePlayer = new Hls({
+                debug: false,
+                enableWorker: true,
+                lowLatencyMode: true,
+                backBufferLength: 90
+            });
+            
+            this.currentSidePlayer.loadSource(channel.url);
+            this.currentSidePlayer.attachMedia(video);
+            
+            this.currentSidePlayer.on(Hls.Events.MANIFEST_PARSED, () => {
+                video.play().catch(e => console.log('Autoplay prevented:', e));
+            });
+
+            this.currentSidePlayer.on(Hls.Events.ERROR, (event, data) => {
+                console.error('HLS Error:', data);
+                if (data.fatal) {
+                    this.handleSidePlayerError(channel);
+                }
+            });
+            
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = channel.url;
+            video.play().catch(e => console.log('Autoplay prevented:', e));
+        }
+
+        // Update EPG info
+        this.updateSidePlayerEPG(channel);
+    }
+
+    handleSidePlayerError(channel) {
+        const video = document.getElementById('side-video-player');
+        video.src = channel.url;
+        video.play().catch(e => {
+            console.error('Failed to play channel:', e);
+        });
+    }
+
+    updateSidePlayerEPG(channel) {
+        const currentProgram = document.getElementById('side-current-program');
+        const nextProgram = document.getElementById('side-next-program');
+        
+        if (channel.epg_channel_id && this.epgData[channel.epg_channel_id]) {
+            const now = new Date();
+            const programs = this.epgData[channel.epg_channel_id];
+            
+            const current = programs.find(p => p.start <= now && p.stop > now);
+            const next = programs.find(p => p.start > now);
+            
+            if (current) {
+                currentProgram.innerHTML = `<strong>Agora:</strong> ${current.title}`;
+            } else {
+                currentProgram.innerHTML = '';
+            }
+            
+            if (next) {
+                nextProgram.innerHTML = `<strong>Próximo:</strong> ${next.title} (${next.start.toLocaleTimeString()})`;
+            } else {
+                nextProgram.innerHTML = '';
+            }
+        } else {
+            currentProgram.innerHTML = '';
+            nextProgram.innerHTML = '';
+        }
+    }
+
+    closeSidePlayer() {
+        const sidePlayer = document.getElementById('side-player');
+        const contentArea = document.getElementById('main-content-area');
+        const video = document.getElementById('side-video-player');
+
+        // Hide side player
+        sidePlayer.classList.add('d-none');
+        
+        // Restore content area
+        contentArea.classList.remove('col-lg-7', 'col-md-5');
+        contentArea.classList.add('col-lg-10', 'col-md-9');
+
+        // Stop video
+        video.pause();
+        video.src = '';
+        
+        if (this.currentSidePlayer) {
+            this.currentSidePlayer.destroy();
+            this.currentSidePlayer = null;
+        }
+    }
+
+    expandPlayer() {
+        // Get current channel data
+        const currentChannel = {
+            name: document.getElementById('side-player-title').textContent,
+            url: document.getElementById('side-video-player').src || (this.currentSidePlayer ? this.currentSidePlayer.url : '')
+        };
+
+        // Close side player
+        this.closeSidePlayer();
+
+        // Open in full modal
+        this.playContent(currentChannel);
+    }
 }
 
 // Global functions for HTML event handlers
@@ -1157,6 +1520,15 @@ function showMovieCategories() {
 
 function showSeriesCategories() {
     player.showSeriesCategories();
+}
+
+// Global functions for favorites
+function loadFavorite(id) {
+    player.loadFavorite(id);
+}
+
+function deleteFavorite(id) {
+    player.deleteFavorite(id);
 }
 
 // Initialize the application

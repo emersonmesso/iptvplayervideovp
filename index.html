@@ -143,6 +143,9 @@
                         <i class="fas fa-tv me-2"></i>IPTV Player VP
                     </a>
                     <div class="navbar-nav ms-auto">
+                        <button class="btn btn-outline-info me-2" onclick="showFavorites()">
+                            <i class="fas fa-heart me-1"></i>Favoritos
+                        </button>
                         <button class="btn btn-outline-light me-2" onclick="refreshContent()">
                             <i class="fas fa-sync-alt me-1"></i>Atualizar
                         </button>
@@ -171,8 +174,60 @@
                             </button>
                         </div>
                     </div>
+                    
+                    <!-- Player Lateral -->
+                    <div id="side-player" class="col-md-4 col-lg-3 d-none">
+                        <div class="bg-dark bg-opacity-75 h-100">
+                            <div class="p-3 border-bottom border-secondary">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="text-white mb-0" id="side-player-title">Canal</h6>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-light me-1" onclick="expandPlayer()">
+                                            <i class="fas fa-expand"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="closeSidePlayer()">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="position-relative">
+                                <video id="side-video-player" class="w-100" controls style="height: 250px; object-fit: cover;"></video>
+                            </div>
+                            <div class="p-3">
+                                <div id="side-current-program" class="text-white mb-1 small"></div>
+                                <div id="side-next-program" class="text-white-50 small"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Side Player for Live Channels -->
+                    <div id="side-player" class="col-md-4 col-lg-3 bg-dark border-start d-none">
+                        <div class="p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="text-white mb-0">
+                                    <i class="fas fa-tv me-2"></i><span id="current-channel-name">Canal</span>
+                                </h6>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-light" onclick="toggleFullscreen()" title="Tela Cheia">
+                                        <i class="fas fa-expand"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger" onclick="closeSidePlayer()" title="Fechar">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="side-player-container">
+                                <video id="side-video-player" class="w-100" controls muted></video>
+                            </div>
+                            <div class="side-player-info mt-3">
+                                <div id="side-current-program" class="text-white-50 small"></div>
+                                <div id="side-next-program" class="text-white-50 small"></div>
+                            </div>
+                        </div>
+                    </div>
 
-                    <div class="col-md-9 col-lg-10">
+                    <div id="main-content-area" class="col-md-9 col-lg-10">
                         <div class="p-4">
                             <!-- Seção de Canais -->
                             <div id="channels-section" class="content-section active">
@@ -246,6 +301,54 @@
                                 </div>
                                 <div id="epg-content" class="epg-container"></div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Favorites Modal -->
+        <div class="modal fade" id="favorites-modal" tabindex="-1" aria-labelledby="favoritesModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content bg-dark">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title text-white" id="favorites-modal-title">
+                            <i class="fas fa-star me-2"></i>Listas Favoritas
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row mb-3">
+                            <div class="col">
+                                <button class="btn btn-warning" onclick="saveCurrentConnection()">
+                                    <i class="fas fa-plus me-1"></i>Salvar Lista Atual
+                                </button>
+                            </div>
+                        </div>
+                        <div id="favorites-list" class="row g-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Favoritos -->
+        <div class="modal fade" id="favorites-modal" tabindex="-1" aria-labelledby="favoritesModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content bg-dark">
+                    <div class="modal-header border-secondary">
+                        <h5 class="modal-title text-white" id="favoritesModalLabel">
+                            <i class="fas fa-heart me-2"></i>Listas Favoritas
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <button class="btn btn-success" onclick="saveFavorite()">
+                                <i class="fas fa-plus me-1"></i>Salvar Lista Atual
+                            </button>
+                        </div>
+                        <div id="favorites-list" class="row g-3">
+                            <!-- Favoritos serão carregados aqui -->
                         </div>
                     </div>
                 </div>
