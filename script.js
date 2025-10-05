@@ -1,0 +1,844 @@
+class IPTVPlayer {
+    constructor() {
+        this.connectionType = null;
+        this.connectionData = null;
+        this.channels = [];
+        this.movies = [];
+        this.series = [];
+        this.epgData = {};
+        this.currentPlayer = null;
+        this.currentSection = 'channels';
+        
+        this.init();
+    }
+
+    init() {
+        this.setupEventListeners();
+        this.loadStoredConnection();
+        
+        // Ensure only connection-selector is shown initially
+        this.showScreen('connection-selector');
+        
+        // Debug: log initial screen states
+        console.log('Initial screen states:');
+        document.querySelectorAll('.screen').forEach(screen => {
+            console.log(`${screen.id}: active=${screen.classList.contains('active')}, display=${getComputedStyle(screen).display}`);
+        });
+    }
+
+    setupEventListeners() {
+        // Form submissions
+        document.getElementById('m3u-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.connectM3U();
+        });
+
+        document.getElementById('xtream-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            this.connectXtream();
+        });
+
+        // Search functionality
+        document.getElementById('channels-search').addEventListener('input', (e) => {
+            this.filterContent('channels', e.target.value);
+        });
+
+        document.getElementById('movies-search').addEventListener('input', (e) => {
+            this.filterContent('movies', e.target.value);
+        });
+
+        document.getElementById('series-search').addEventListener('input', (e) => {
+            this.filterContent('series', e.target.value);
+        });
+
+        // EPG date change
+        document.getElementById('epg-date').addEventListener('change', () => {
+            this.loadEPG();
+        });
+
+        // Set today's date for EPG
+        document.getElementById('epg-date').valueAsDate = new Date();
+    }
+
+    loadStoredConnection() {
+        const stored = localStorage.getItem('iptv-connection');
+        if (stored) {
+            try {
+                const data = JSON.parse(stored);
+                this.connectionType = data.type;
+                this.connectionData = data.data;
+                this.showScreen('main-screen');
+                this.loadContent();
+            } catch (error) {
+                console.error('Error loading stored connection:', error);
+            }
+        }
+    }
+
+    selectConnectionType(type) {
+        console.log('Selecting connection type:', type);
+        this.connectionType = type;
+        if (type === 'm3u') {
+            console.log('Showing M3U login screen');
+            this.showScreen('m3u-login');
+        } else if (type === 'xtream') {
+            console.log('Showing Xtream login screen');
+            this.showScreen('xtream-login');
+        }
+    }
+
+    async connectM3U() {
+        const url = document.getElementById('m3u-url').value;
+        const epgUrl = document.getElementById('m3u-epg').value;
+
+        this.showLoading(true);
+
+        try {
+            const response = await this.fetchWithCORS(url);
+            const m3uContent = await response.text();
+            
+            this.connectionData = {
+                url: url,
+                epgUrl: epgUrl,
+                content: m3uContent
+            };
+
+            this.parseM3U(m3uContent);
+            
+            if (epgUrl) {
+                await this.loadEPGFromURL(epgUrl);
+            }
+
+            this.saveConnection();
+            this.showScreen('main-screen');
+            this.displayContent();
+
+        } catch (error) {
+            console.error('Error connecting to M3U:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro de Conexão',
+                text: 'Erro ao conectar com a lista M3U. Verifique a URL e tente novamente.',
+                background: '#1e3c72',
+                color: '#ffffff',
+                confirmButtonColor: '#ffd700'
+            });
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    async connectXtream() {
+        const url = document.getElementById('xtream-url').value;
+        const username = document.getElementById('xtream-username').value;
+        const password = document.getElementById('xtream-password').value;
+
+        this.showLoading(true);
+
+        try {
+            // Test authentication
+            const authUrl = `${url}/player_api.php?username=${username}&password=${password}`;
+            const authResponse = await this.fetchWithCORS(authUrl);
+            const authData = await authResponse.json();
+
+            if (authData.user_info && authData.user_info.auth === 1) {
+                this.connectionData = {
+                    url: url,
+                    username: username,
+                    password: password
+                };
+
+                await this.loadXtreamContent();
+                this.saveConnection();
+                this.showScreen('main-screen');
+                this.displayContent();
+            } else {
+                throw new Error('Authentication failed');
+            }
+
+        } catch (error) {
+            console.error('Error connecting to Xtream:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro de Autenticação',
+                text: 'Erro ao conectar com o servidor. Verifique os dados e tente novamente.',
+                background: '#1e3c72',
+                color: '#ffffff',
+                confirmButtonColor: '#ffd700'
+            });
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    async loadXtreamContent() {
+        const { url, username, password } = this.connectionData;
+        const baseUrl = `${url}/player_api.php?username=${username}&password=${password}`;
+
+        try {
+            // Load live channels
+            const channelsResponse = await this.fetchWithCORS(`${baseUrl}&action=get_live_categories`);
+            const categories = await channelsResponse.json();
+            
+            this.channels = [];
+            for (const category of categories) {
+                const streamsResponse = await this.fetchWithCORS(`${baseUrl}&action=get_live_streams&category_id=${category.category_id}`);
+                const streams = await streamsResponse.json();
+                
+                streams.forEach(stream => {
+                    this.channels.push({
+                        name: stream.name,
+                        url: `${url}/live/${username}/${password}/${stream.stream_id}.m3u8`,
+                        logo: stream.stream_icon,
+                        category: category.category_name,
+                        epg_channel_id: stream.epg_channel_id
+                    });
+                });
+            }
+
+            // Load movies
+            const movieCategoriesResponse = await this.fetchWithCORS(`${baseUrl}&action=get_vod_categories`);
+            const movieCategories = await movieCategoriesResponse.json();
+            
+            this.movies = [];
+            for (const category of movieCategories.slice(0, 5)) { // Limit to first 5 categories
+                const moviesResponse = await this.fetchWithCORS(`${baseUrl}&action=get_vod_streams&category_id=${category.category_id}`);
+                const movieStreams = await moviesResponse.json();
+                
+                movieStreams.forEach(movie => {
+                    this.movies.push({
+                        name: movie.name,
+                        url: `${url}/movie/${username}/${password}/${movie.stream_id}.${movie.container_extension}`,
+                        logo: movie.stream_icon,
+                        category: category.category_name,
+                        plot: movie.plot,
+                        year: movie.year,
+                        rating: movie.rating_5based
+                    });
+                });
+            }
+
+            // Load series
+            const seriesCategoriesResponse = await this.fetchWithCORS(`${baseUrl}&action=get_series_categories`);
+            const seriesCategories = await seriesCategoriesResponse.json();
+            
+            this.series = [];
+            for (const category of seriesCategories.slice(0, 3)) { // Limit to first 3 categories
+                const seriesResponse = await this.fetchWithCORS(`${baseUrl}&action=get_series&category_id=${category.category_id}`);
+                const seriesStreams = await seriesResponse.json();
+                
+                seriesStreams.forEach(serie => {
+                    this.series.push({
+                        name: serie.name,
+                        logo: serie.cover,
+                        category: category.category_name,
+                        plot: serie.plot,
+                        year: serie.year,
+                        rating: serie.rating_5based,
+                        series_id: serie.series_id
+                    });
+                });
+            }
+
+            // Load EPG
+            const epgResponse = await this.fetchWithCORS(`${baseUrl}&action=get_simple_data_table&stream_id=${this.channels[0]?.epg_channel_id || ''}`);
+            if (epgResponse.ok) {
+                const epgData = await epgResponse.json();
+                this.processXtreamEPG(epgData);
+            }
+
+        } catch (error) {
+            console.error('Error loading Xtream content:', error);
+        }
+    }
+
+    parseM3U(content) {
+        const lines = content.split('\n');
+        this.channels = [];
+        
+        let currentChannel = null;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            if (line.startsWith('#EXTINF:')) {
+                currentChannel = {};
+                
+                // Extract channel name
+                const nameMatch = line.match(/,(.+)$/);
+                if (nameMatch) {
+                    currentChannel.name = nameMatch[1].trim();
+                }
+                
+                // Extract logo
+                const logoMatch = line.match(/tvg-logo="([^"]+)"/);
+                if (logoMatch) {
+                    currentChannel.logo = logoMatch[1];
+                }
+                
+                // Extract group/category
+                const groupMatch = line.match(/group-title="([^"]+)"/);
+                if (groupMatch) {
+                    currentChannel.category = groupMatch[1];
+                }
+                
+                // Extract EPG channel ID
+                const epgMatch = line.match(/tvg-id="([^"]+)"/);
+                if (epgMatch) {
+                    currentChannel.epg_channel_id = epgMatch[1];
+                }
+                
+            } else if (line && !line.startsWith('#') && currentChannel) {
+                currentChannel.url = line;
+                this.channels.push(currentChannel);
+                currentChannel = null;
+            }
+        }
+    }
+
+    async loadEPGFromURL(epgUrl) {
+        try {
+            const response = await this.fetchWithCORS(epgUrl);
+            const xmlText = await response.text();
+            
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+            
+            this.parseEPGXML(xmlDoc);
+        } catch (error) {
+            console.error('Error loading EPG:', error);
+        }
+    }
+
+    parseEPGXML(xmlDoc) {
+        const programmes = xmlDoc.getElementsByTagName('programme');
+        this.epgData = {};
+        
+        for (let programme of programmes) {
+            const channel = programme.getAttribute('channel');
+            const start = programme.getAttribute('start');
+            const stop = programme.getAttribute('stop');
+            
+            const titleElement = programme.getElementsByTagName('title')[0];
+            const descElement = programme.getElementsByTagName('desc')[0];
+            
+            const title = titleElement ? titleElement.textContent : '';
+            const desc = descElement ? descElement.textContent : '';
+            
+            if (!this.epgData[channel]) {
+                this.epgData[channel] = [];
+            }
+            
+            this.epgData[channel].push({
+                title,
+                desc,
+                start: this.parseEPGTime(start),
+                stop: this.parseEPGTime(stop)
+            });
+        }
+    }
+
+    parseEPGTime(timeStr) {
+        // Parse XMLTV time format: 20231205120000 +0000
+        const year = parseInt(timeStr.substr(0, 4));
+        const month = parseInt(timeStr.substr(4, 2)) - 1;
+        const day = parseInt(timeStr.substr(6, 2));
+        const hour = parseInt(timeStr.substr(8, 2));
+        const minute = parseInt(timeStr.substr(10, 2));
+        const second = parseInt(timeStr.substr(12, 2));
+        
+        return new Date(year, month, day, hour, minute, second);
+    }
+
+    processXtreamEPG(epgData) {
+        this.epgData = {};
+        
+        if (epgData && epgData.epg_listings) {
+            for (const [channelId, listings] of Object.entries(epgData.epg_listings)) {
+                this.epgData[channelId] = listings.map(listing => ({
+                    title: listing.title,
+                    desc: listing.description,
+                    start: new Date(listing.start_timestamp * 1000),
+                    stop: new Date(listing.stop_timestamp * 1000)
+                }));
+            }
+        }
+    }
+
+    async fetchWithCORS(url) {
+        // For development, we'll use a CORS proxy or handle CORS issues
+        try {
+            return await fetch(url);
+        } catch (error) {
+            // Fallback: try with CORS proxy
+            const proxyUrl = `https://cors-anywhere.herokuapp.com/${url}`;
+            return await fetch(proxyUrl);
+        }
+    }
+
+    saveConnection() {
+        const connectionInfo = {
+            type: this.connectionType,
+            data: this.connectionData
+        };
+        localStorage.setItem('iptv-connection', JSON.stringify(connectionInfo));
+    }
+
+    loadContent() {
+        if (this.connectionType === 'm3u') {
+            this.parseM3U(this.connectionData.content);
+            if (this.connectionData.epgUrl) {
+                this.loadEPGFromURL(this.connectionData.epgUrl);
+            }
+        } else if (this.connectionType === 'xtream') {
+            this.loadXtreamContent();
+        }
+        this.displayContent();
+    }
+
+    displayContent() {
+        this.displayChannels();
+        this.displayMovies();
+        this.displaySeries();
+        this.loadEPG();
+    }
+
+    displayChannels() {
+        const container = document.getElementById('channels-list');
+        container.innerHTML = '';
+
+        this.channels.forEach(channel => {
+            const channelElement = this.createContentItem(channel, 'channel');
+            container.appendChild(channelElement);
+        });
+    }
+
+    displayMovies() {
+        const container = document.getElementById('movies-list');
+        container.innerHTML = '';
+
+        this.movies.forEach(movie => {
+            const movieElement = this.createContentItem(movie, 'movie');
+            container.appendChild(movieElement);
+        });
+    }
+
+    displaySeries() {
+        const container = document.getElementById('series-list');
+        container.innerHTML = '';
+
+        this.series.forEach(serie => {
+            const serieElement = this.createContentItem(serie, 'serie');
+            container.appendChild(serieElement);
+        });
+    }
+
+    createContentItem(item, type) {
+        const div = document.createElement('div');
+        div.className = 'col-lg-3 col-md-4 col-sm-6';
+        
+        const isLive = type === 'channel';
+        const liveIndicator = isLive ? '<span class="badge bg-danger position-absolute top-0 start-0 m-2"><i class="fas fa-circle me-1" style="font-size: 8px;"></i>AO VIVO</span>' : '';
+        
+        div.innerHTML = `
+            <div class="card bg-dark text-white h-100 border-secondary content-item" style="cursor: pointer;">
+                <div class="position-relative">
+                    ${item.logo ? `<img src="${item.logo}" class="card-img-top" alt="${item.name}" style="height: 200px; object-fit: cover;" onerror="this.style.display='none'">` : '<div class="card-img-top bg-secondary d-flex align-items-center justify-content-center" style="height: 200px;"><i class="fas fa-tv fa-3x text-muted"></i></div>'}
+                    ${liveIndicator}
+                </div>
+                <div class="card-body">
+                    <h6 class="card-title text-truncate">${item.name}</h6>
+                    ${item.category ? `<p class="card-text"><small class="text-muted"><i class="fas fa-tag me-1"></i>${item.category}</small></p>` : ''}
+                    ${item.plot ? `<p class="card-text small">${item.plot.substring(0, 80)}...</p>` : ''}
+                    <div class="d-flex justify-content-between align-items-center">
+                        ${item.year ? `<small class="text-muted">${item.year}</small>` : '<span></span>'}
+                        ${item.rating ? `<small class="text-warning">⭐ ${item.rating}</small>` : ''}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        div.querySelector('.content-item').addEventListener('click', () => {
+            if (type === 'serie') {
+                this.showSerieEpisodes(item);
+            } else {
+                this.playContent(item);
+            }
+        });
+
+        return div;
+    }
+
+    async showSerieEpisodes(serie) {
+        if (this.connectionType === 'xtream') {
+            const { url, username, password } = this.connectionData;
+            try {
+                const response = await this.fetchWithCORS(`${url}/player_api.php?username=${username}&password=${password}&action=get_series_info&series_id=${serie.series_id}`);
+                const serieInfo = await response.json();
+                
+                // Create episodes modal or update content area
+                this.showEpisodesModal(serieInfo, serie);
+            } catch (error) {
+                console.error('Error loading episodes:', error);
+            }
+        }
+    }
+
+    showEpisodesModal(serieInfo, serie) {
+        // Create a simple episodes list for now
+        const episodes = [];
+        
+        if (serieInfo.seasons) {
+            Object.values(serieInfo.seasons).forEach(season => {
+                Object.values(season).forEach(episode => {
+                    episodes.push({
+                        name: `S${episode.season_number}E${episode.episode_num} - ${episode.title}`,
+                        url: `${this.connectionData.url}/series/${this.connectionData.username}/${this.connectionData.password}/${episode.id}.${episode.container_extension}`,
+                        plot: episode.plot
+                    });
+                });
+            });
+        }
+
+        if (episodes.length > 0) {
+            this.playContent(episodes[0]); // Play first episode for now
+        }
+    }
+
+    playContent(item) {
+        const modal = new bootstrap.Modal(document.getElementById('player-modal'));
+        const video = document.getElementById('video-player');
+        const title = document.getElementById('player-title');
+
+        title.textContent = item.name;
+        modal.show();
+
+        // Initialize HLS player
+        if (Hls.isSupported()) {
+            if (this.currentPlayer) {
+                this.currentPlayer.destroy();
+            }
+            
+            this.currentPlayer = new Hls({
+                debug: false,
+                enableWorker: true,
+                lowLatencyMode: true,
+                backBufferLength: 90
+            });
+            
+            this.currentPlayer.loadSource(item.url);
+            this.currentPlayer.attachMedia(video);
+            
+            this.currentPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
+                video.play().catch(e => console.log('Autoplay prevented:', e));
+            });
+
+            this.currentPlayer.on(Hls.Events.ERROR, (event, data) => {
+                console.error('HLS Error:', data);
+                if (data.fatal) {
+                    this.handlePlayerError(item);
+                }
+            });
+            
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            // Native HLS support (Safari)
+            video.src = item.url;
+            video.play().catch(e => console.log('Autoplay prevented:', e));
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Navegador Incompatível',
+                text: 'Seu navegador não suporta reprodução de streams HLS.',
+                background: '#1e3c72',
+                color: '#ffffff',
+                confirmButtonColor: '#ffd700'
+            });
+        }
+
+        // Update EPG info if available
+        this.updatePlayerEPG(item);
+    }
+
+    handlePlayerError(item) {
+        const video = document.getElementById('video-player');
+        
+        // Try fallback methods
+        if (item.url.includes('.m3u8')) {
+            // Try direct video tag
+            video.src = item.url;
+            video.play().catch(e => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erro de Reprodução',
+                    text: 'Erro ao reproduzir o conteúdo. Verifique se o stream está disponível.',
+                    background: '#1e3c72',
+                    color: '#ffffff',
+                    confirmButtonColor: '#ffd700'
+                });
+            });
+        }
+    }
+
+    updatePlayerEPG(item) {
+        const currentProgram = document.getElementById('current-program');
+        const nextProgram = document.getElementById('next-program');
+        
+        if (item.epg_channel_id && this.epgData[item.epg_channel_id]) {
+            const now = new Date();
+            const programs = this.epgData[item.epg_channel_id];
+            
+            const current = programs.find(p => p.start <= now && p.stop > now);
+            const next = programs.find(p => p.start > now);
+            
+            if (current) {
+                currentProgram.innerHTML = `<strong>Agora:</strong> ${current.title}`;
+            }
+            
+            if (next) {
+                nextProgram.innerHTML = `<strong>Próximo:</strong> ${next.title} (${next.start.toLocaleTimeString()})`;
+            }
+        } else {
+            currentProgram.innerHTML = '';
+            nextProgram.innerHTML = '';
+        }
+    }
+
+    closePlayer() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('player-modal'));
+        const video = document.getElementById('video-player');
+        
+        if (modal) {
+            modal.hide();
+        }
+        video.pause();
+        video.src = '';
+        
+        if (this.currentPlayer) {
+            this.currentPlayer.destroy();
+            this.currentPlayer = null;
+        }
+    }
+
+    showSection(section) {
+        // Update navigation
+        document.querySelectorAll('.nav-link').forEach(item => {
+            item.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        // Update content sections
+        document.querySelectorAll('.content-section').forEach(sec => {
+            sec.classList.remove('active');
+            sec.style.display = 'none';
+        });
+        const targetSection = document.getElementById(`${section}-section`);
+        targetSection.classList.add('active');
+        targetSection.style.display = 'block';
+
+        this.currentSection = section;
+    }
+
+    loadEPG() {
+        const container = document.getElementById('epg-content');
+        const selectedDate = new Date(document.getElementById('epg-date').value);
+        
+        container.innerHTML = '';
+
+        if (Object.keys(this.epgData).length === 0) {
+            container.innerHTML = '<p>Dados de EPG não disponíveis.</p>';
+            return;
+        }
+
+        Object.entries(this.epgData).forEach(([channelId, programs]) => {
+            const channel = this.channels.find(c => c.epg_channel_id === channelId);
+            if (!channel) return;
+
+            const channelDiv = document.createElement('div');
+            channelDiv.className = 'epg-channel';
+
+            const channelName = document.createElement('h3');
+            channelName.textContent = channel.name;
+            channelDiv.appendChild(channelName);
+
+            const dayPrograms = programs.filter(p => {
+                const programDate = new Date(p.start);
+                return programDate.toDateString() === selectedDate.toDateString();
+            });
+
+            if (dayPrograms.length === 0) {
+                const noPrograms = document.createElement('p');
+                noPrograms.textContent = 'Nenhum programa encontrado para esta data.';
+                channelDiv.appendChild(noPrograms);
+            } else {
+                dayPrograms.forEach(program => {
+                    const programDiv = document.createElement('div');
+                    programDiv.className = 'epg-program';
+                    
+                    const now = new Date();
+                    if (program.start <= now && program.stop > now) {
+                        programDiv.classList.add('current');
+                    }
+
+                    programDiv.innerHTML = `
+                        <div class="time">${program.start.toLocaleTimeString()} - ${program.stop.toLocaleTimeString()}</div>
+                        <div class="title">${program.title}</div>
+                    `;
+
+                    if (program.desc) {
+                        const desc = document.createElement('div');
+                        desc.className = 'description';
+                        desc.textContent = program.desc;
+                        programDiv.appendChild(desc);
+                    }
+
+                    channelDiv.appendChild(programDiv);
+                });
+            }
+
+            container.appendChild(channelDiv);
+        });
+    }
+
+    filterContent(type, query) {
+        const container = document.getElementById(`${type}-list`);
+        const items = container.querySelectorAll('.col-lg-3');
+        
+        items.forEach(item => {
+            const title = item.querySelector('.card-title').textContent.toLowerCase();
+            const categoryElement = item.querySelector('.text-muted');
+            const category = categoryElement ? categoryElement.textContent.toLowerCase() : '';
+            
+            if (title.includes(query.toLowerCase()) || category.includes(query.toLowerCase())) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    refreshContent() {
+        this.showLoading(true);
+        setTimeout(() => {
+            this.loadContent();
+            this.showLoading(false);
+        }, 1000);
+    }
+
+    async disconnect() {
+        const result = await Swal.fire({
+            title: 'Desconectar?',
+            text: 'Tem certeza que deseja desconectar do servidor?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sim, desconectar',
+            cancelButtonText: 'Cancelar',
+            background: '#1e3c72',
+            color: '#ffffff'
+        });
+
+        if (result.isConfirmed) {
+            localStorage.removeItem('iptv-connection');
+            this.connectionType = null;
+            this.connectionData = null;
+            this.channels = [];
+            this.movies = [];
+            this.series = [];
+            this.epgData = {};
+            
+            if (this.currentPlayer) {
+                this.currentPlayer.destroy();
+                this.currentPlayer = null;
+            }
+            
+            this.showScreen('connection-selector');
+            
+            Swal.fire({
+                title: 'Desconectado!',
+                text: 'Você foi desconectado com sucesso.',
+                icon: 'success',
+                timer: 2000,
+                background: '#1e3c72',
+                color: '#ffffff',
+                confirmButtonColor: '#ffd700'
+            });
+        }
+    }
+
+    goBack() {
+        this.showScreen('connection-selector');
+    }
+
+    showScreen(screenId) {
+        console.log('Showing screen:', screenId);
+        
+        // Remove active class from all screens
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.classList.remove('active');
+        });
+        
+        // Add active class to target screen
+        const targetScreen = document.getElementById(screenId);
+        if (targetScreen) {
+            targetScreen.classList.add('active');
+            console.log('Screen activated:', screenId);
+        } else {
+            console.error('Screen not found:', screenId);
+        }
+        
+        // Force reflow to ensure the display change takes effect
+        if (targetScreen) {
+            targetScreen.offsetHeight;
+        }
+        
+        // Reset any inline styles that might interfere
+        document.querySelectorAll('.screen').forEach(screen => {
+            screen.style.opacity = '';
+            screen.style.transition = '';
+        });
+    }
+
+    showLoading(show) {
+        const overlay = document.getElementById('loading-overlay');
+        if (show) {
+            overlay.classList.remove('d-none');
+            overlay.classList.add('d-flex');
+        } else {
+            overlay.classList.remove('d-flex');
+            overlay.classList.add('d-none');
+        }
+    }
+}
+
+// Global functions for HTML event handlers
+function selectConnectionType(type) {
+    player.selectConnectionType(type);
+}
+
+function goBack() {
+    player.goBack();
+}
+
+function showSection(section) {
+    player.showSection(section);
+}
+
+function closePlayer() {
+    player.closePlayer();
+}
+
+function refreshContent() {
+    player.refreshContent();
+}
+
+function disconnect() {
+    player.disconnect();
+}
+
+function loadEPG() {
+    player.loadEPG();
+}
+
+// Initialize the application
+const player = new IPTVPlayer();
