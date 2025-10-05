@@ -14,6 +14,11 @@ class IPTVPlayer {
         this.movieCategories = [];
         this.seriesCategories = [];
         
+        // Current category tracking
+        this.currentChannelCategory = null;
+        this.currentMovieCategory = null;
+        this.currentSeriesCategory = null;
+        
         this.init();
     }
 
@@ -216,117 +221,87 @@ class IPTVPlayer {
         }
     }
 
-    async loadXtreamChannels(categoryId = null) {
+    async loadChannelsByCategory(categoryId) {
         const { url, username, password } = this.connectionData;
         const baseUrl = `${url}/player_api.php?username=${username}&password=${password}`;
 
-        try {
-            let streams = [];
-            if (categoryId) {
-                const response = await this.fetchWithCORS(`${baseUrl}&action=get_live_streams&category_id=${categoryId}`);
-                streams = await response.json();
-            } else {
-                // Load all categories
-                for (const category of this.channelCategories.slice(0, 10)) { // Limit to first 10 categories
-                    const response = await this.fetchWithCORS(`${baseUrl}&action=get_live_streams&category_id=${category.category_id}`);
-                    const categoryStreams = await response.json();
-                    
-                    categoryStreams.forEach(stream => {
-                        stream.category_name = category.category_name;
-                    });
-                    
-                    streams = streams.concat(categoryStreams);
-                }
-            }
+        this.showLoadingMessage('channels-list', 'Carregando canais...');
 
-            return streams.map(stream => ({
+        try {
+            const response = await this.fetchWithCORS(`${baseUrl}&action=get_live_streams&category_id=${categoryId}`);
+            const streams = await response.json();
+
+            this.channels = streams.map(stream => ({
                 name: stream.name,
                 url: `${url}/live/${username}/${password}/${stream.stream_id}.m3u8`,
                 logo: stream.stream_icon,
-                category: stream.category_name || 'Sem Categoria',
+                category: this.currentChannelCategory.category_name,
                 epg_channel_id: stream.epg_channel_id
             }));
 
+            return this.channels;
+
         } catch (error) {
             console.error('Error loading channels:', error);
+            this.channels = [];
             return [];
         }
     }
 
-    async loadXtreamMovies(categoryId = null) {
+    async loadMoviesByCategory(categoryId) {
         const { url, username, password } = this.connectionData;
         const baseUrl = `${url}/player_api.php?username=${username}&password=${password}`;
 
-        try {
-            let movies = [];
-            if (categoryId) {
-                const response = await this.fetchWithCORS(`${baseUrl}&action=get_vod_streams&category_id=${categoryId}`);
-                movies = await response.json();
-            } else {
-                // Load first 5 categories
-                for (const category of this.movieCategories.slice(0, 5)) {
-                    const response = await this.fetchWithCORS(`${baseUrl}&action=get_vod_streams&category_id=${category.category_id}`);
-                    const categoryMovies = await response.json();
-                    
-                    categoryMovies.forEach(movie => {
-                        movie.category_name = category.category_name;
-                    });
-                    
-                    movies = movies.concat(categoryMovies);
-                }
-            }
+        this.showLoadingMessage('movies-list', 'Carregando filmes...');
 
-            return movies.map(movie => ({
+        try {
+            const response = await this.fetchWithCORS(`${baseUrl}&action=get_vod_streams&category_id=${categoryId}`);
+            const movies = await response.json();
+
+            this.movies = movies.map(movie => ({
                 name: movie.name,
                 url: `${url}/movie/${username}/${password}/${movie.stream_id}.${movie.container_extension}`,
                 logo: movie.stream_icon,
-                category: movie.category_name || 'Sem Categoria',
+                category: this.currentMovieCategory.category_name,
                 plot: movie.plot,
                 year: movie.year,
                 rating: movie.rating_5based
             }));
 
+            return this.movies;
+
         } catch (error) {
             console.error('Error loading movies:', error);
+            this.movies = [];
             return [];
         }
     }
 
-    async loadXtreamSeries(categoryId = null) {
+    async loadSeriesByCategory(categoryId) {
         const { url, username, password } = this.connectionData;
         const baseUrl = `${url}/player_api.php?username=${username}&password=${password}`;
 
-        try {
-            let series = [];
-            if (categoryId) {
-                const response = await this.fetchWithCORS(`${baseUrl}&action=get_series&category_id=${categoryId}`);
-                series = await response.json();
-            } else {
-                // Load first 3 categories
-                for (const category of this.seriesCategories.slice(0, 3)) {
-                    const response = await this.fetchWithCORS(`${baseUrl}&action=get_series&category_id=${category.category_id}`);
-                    const categorySeries = await response.json();
-                    
-                    categorySeries.forEach(serie => {
-                        serie.category_name = category.category_name;
-                    });
-                    
-                    series = series.concat(categorySeries);
-                }
-            }
+        this.showLoadingMessage('series-list', 'Carregando séries...');
 
-            return series.map(serie => ({
+        try {
+            const response = await this.fetchWithCORS(`${baseUrl}&action=get_series&category_id=${categoryId}`);
+            const series = await response.json();
+
+            this.series = series.map(serie => ({
                 name: serie.name,
                 logo: serie.cover,
-                category: serie.category_name || 'Sem Categoria',
+                category: this.currentSeriesCategory.category_name,
                 plot: serie.plot,
                 year: serie.year,
                 rating: serie.rating_5based,
                 series_id: serie.series_id
             }));
 
+            return this.series;
+
         } catch (error) {
             console.error('Error loading series:', error);
+            this.series = [];
             return [];
         }
     }
@@ -485,14 +460,16 @@ class IPTVPlayer {
     }
 
     displayInitialContent() {
-        // Show info message for each section
-        this.showInfoMessage('channels-list', 'Canais', 'Clique na aba "Canais" para carregar o conteúdo');
-        this.showInfoMessage('movies-list', 'Filmes', 'Clique na aba "Filmes" para carregar o conteúdo');
-        this.showInfoMessage('series-list', 'Séries', 'Clique na aba "Séries" para carregar o conteúdo');
-        
-        // Load channels immediately for the active section
-        if (this.currentSection === 'channels') {
+        if (this.connectionType === 'xtream') {
+            // Show categories for Xtream connections
+            this.showChannelCategories();
+            this.showMovieCategories();
+            this.showSeriesCategories();
+        } else {
+            // For M3U, show content directly
             this.displayChannels();
+            this.displayMovies();
+            this.displaySeries();
         }
         
         this.loadEPG();
@@ -513,49 +490,209 @@ class IPTVPlayer {
         `;
     }
 
-    async displayChannels() {
-        const container = document.getElementById('channels-list');
+    showChannelCategories() {
+        const categoriesContainer = document.getElementById('channels-categories');
+        const listContainer = document.getElementById('channels-list');
+        const backButton = document.getElementById('back-to-channel-categories');
         
-        if (this.connectionType === 'xtream' && this.channels.length === 0) {
-            this.showLoadingMessage('channels-list', 'Carregando canais...');
-            this.channels = await this.loadXtreamChannels();
+        // Show categories, hide list
+        categoriesContainer.style.display = 'flex';
+        listContainer.style.display = 'none';
+        backButton.classList.add('d-none');
+        
+        categoriesContainer.innerHTML = '';
+        
+        if (this.channelCategories.length === 0) {
+            this.showLoadingMessage('channels-categories', 'Carregando categorias...');
+            return;
         }
         
-        container.innerHTML = '';
+        this.channelCategories.forEach(category => {
+            const categoryCard = this.createCategoryCard(category, 'channel');
+            categoriesContainer.appendChild(categoryCard);
+        });
+    }
+
+    showMovieCategories() {
+        const categoriesContainer = document.getElementById('movies-categories');
+        const listContainer = document.getElementById('movies-list');
+        const backButton = document.getElementById('back-to-movie-categories');
+        
+        // Show categories, hide list
+        categoriesContainer.style.display = 'flex';
+        listContainer.style.display = 'none';
+        backButton.classList.add('d-none');
+        
+        categoriesContainer.innerHTML = '';
+        
+        if (this.movieCategories.length === 0) {
+            this.showLoadingMessage('movies-categories', 'Carregando categorias...');
+            return;
+        }
+        
+        this.movieCategories.forEach(category => {
+            const categoryCard = this.createCategoryCard(category, 'movie');
+            categoriesContainer.appendChild(categoryCard);
+        });
+    }
+
+    showSeriesCategories() {
+        const categoriesContainer = document.getElementById('series-categories');
+        const listContainer = document.getElementById('series-list');
+        const backButton = document.getElementById('back-to-series-categories');
+        
+        // Show categories, hide list
+        categoriesContainer.style.display = 'flex';
+        listContainer.style.display = 'none';
+        backButton.classList.add('d-none');
+        
+        categoriesContainer.innerHTML = '';
+        
+        if (this.seriesCategories.length === 0) {
+            this.showLoadingMessage('series-categories', 'Carregando categorias...');
+            return;
+        }
+        
+        this.seriesCategories.forEach(category => {
+            const categoryCard = this.createCategoryCard(category, 'series');
+            categoriesContainer.appendChild(categoryCard);
+        });
+    }
+
+    createCategoryCard(category, type) {
+        const div = document.createElement('div');
+        div.className = 'col-lg-3 col-md-4 col-sm-6';
+        
+        const icon = type === 'channel' ? 'fas fa-tv' : 
+                    type === 'movie' ? 'fas fa-film' : 'fas fa-video';
+        
+        div.innerHTML = `
+            <div class="card bg-gradient text-white h-100 border-secondary category-card" style="cursor: pointer; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+                <div class="card-body text-center p-4">
+                    <i class="${icon} fa-3x text-warning mb-3"></i>
+                    <h5 class="card-title">${category.category_name}</h5>
+                    <p class="card-text text-white-50">Clique para ver ${type === 'channel' ? 'canais' : type === 'movie' ? 'filmes' : 'séries'}</p>
+                </div>
+            </div>
+        `;
+
+        div.querySelector('.category-card').addEventListener('click', () => {
+            this.selectCategory(category, type);
+        });
+
+        return div;
+    }
+
+    async selectCategory(category, type) {
+        if (type === 'channel') {
+            this.currentChannelCategory = category;
+            await this.loadChannelsByCategory(category.category_id);
+            this.showChannelsList();
+        } else if (type === 'movie') {
+            this.currentMovieCategory = category;
+            await this.loadMoviesByCategory(category.category_id);
+            this.showMoviesList();
+        } else if (type === 'series') {
+            this.currentSeriesCategory = category;
+            await this.loadSeriesByCategory(category.category_id);
+            this.showSeriesList();
+        }
+    }
+
+    showChannelsList() {
+        const categoriesContainer = document.getElementById('channels-categories');
+        const listContainer = document.getElementById('channels-list');
+        const backButton = document.getElementById('back-to-channel-categories');
+        
+        // Hide categories, show list
+        categoriesContainer.style.display = 'none';
+        listContainer.style.display = 'flex';
+        backButton.classList.remove('d-none');
+        
+        // Display channels
+        listContainer.innerHTML = '';
         this.channels.forEach(channel => {
             const channelElement = this.createContentItem(channel, 'channel');
-            container.appendChild(channelElement);
+            listContainer.appendChild(channelElement);
         });
+    }
+
+    showMoviesList() {
+        const categoriesContainer = document.getElementById('movies-categories');
+        const listContainer = document.getElementById('movies-list');
+        const backButton = document.getElementById('back-to-movie-categories');
+        
+        // Hide categories, show list
+        categoriesContainer.style.display = 'none';
+        listContainer.style.display = 'flex';
+        backButton.classList.remove('d-none');
+        
+        // Display movies
+        listContainer.innerHTML = '';
+        this.movies.forEach(movie => {
+            const movieElement = this.createContentItem(movie, 'movie');
+            listContainer.appendChild(movieElement);
+        });
+    }
+
+    showSeriesList() {
+        const categoriesContainer = document.getElementById('series-categories');
+        const listContainer = document.getElementById('series-list');
+        const backButton = document.getElementById('back-to-series-categories');
+        
+        // Hide categories, show list
+        categoriesContainer.style.display = 'none';
+        listContainer.style.display = 'flex';
+        backButton.classList.remove('d-none');
+        
+        // Display series
+        listContainer.innerHTML = '';
+        this.series.forEach(serie => {
+            const serieElement = this.createContentItem(serie, 'serie');
+            listContainer.appendChild(serieElement);
+        });
+    }
+
+    async displayChannels() {
+        if (this.connectionType === 'xtream') {
+            this.showChannelCategories();
+        } else {
+            // M3U - show channels directly
+            const container = document.getElementById('channels-list');
+            container.innerHTML = '';
+            this.channels.forEach(channel => {
+                const channelElement = this.createContentItem(channel, 'channel');
+                container.appendChild(channelElement);
+            });
+        }
     }
 
     async displayMovies() {
-        const container = document.getElementById('movies-list');
-        
-        if (this.connectionType === 'xtream' && this.movies.length === 0) {
-            this.showLoadingMessage('movies-list', 'Carregando filmes...');
-            this.movies = await this.loadXtreamMovies();
+        if (this.connectionType === 'xtream') {
+            this.showMovieCategories();
+        } else {
+            // M3U - show movies directly (if any)
+            const container = document.getElementById('movies-list');
+            container.innerHTML = '';
+            this.movies.forEach(movie => {
+                const movieElement = this.createContentItem(movie, 'movie');
+                container.appendChild(movieElement);
+            });
         }
-        
-        container.innerHTML = '';
-        this.movies.forEach(movie => {
-            const movieElement = this.createContentItem(movie, 'movie');
-            container.appendChild(movieElement);
-        });
     }
 
     async displaySeries() {
-        const container = document.getElementById('series-list');
-        
-        if (this.connectionType === 'xtream' && this.series.length === 0) {
-            this.showLoadingMessage('series-list', 'Carregando séries...');
-            this.series = await this.loadXtreamSeries();
+        if (this.connectionType === 'xtream') {
+            this.showSeriesCategories();
+        } else {
+            // M3U - show series directly (if any)
+            const container = document.getElementById('series-list');
+            container.innerHTML = '';
+            this.series.forEach(serie => {
+                const serieElement = this.createContentItem(serie, 'serie');
+                container.appendChild(serieElement);
+            });
         }
-        
-        container.innerHTML = '';
-        this.series.forEach(serie => {
-            const serieElement = this.createContentItem(serie, 'serie');
-            container.appendChild(serieElement);
-        });
     }
 
     showLoadingMessage(containerId, message) {
@@ -779,21 +916,19 @@ class IPTVPlayer {
         this.currentSection = section;
 
         // Load content on demand
-        if (this.connectionType === 'xtream') {
-            switch (section) {
-                case 'channels':
-                    await this.displayChannels();
-                    break;
-                case 'movies':
-                    await this.displayMovies();
-                    break;
-                case 'series':
-                    await this.displaySeries();
-                    break;
-                case 'epg':
-                    this.loadEPG();
-                    break;
-            }
+        switch (section) {
+            case 'channels':
+                await this.displayChannels();
+                break;
+            case 'movies':
+                await this.displayMovies();
+                break;
+            case 'series':
+                await this.displaySeries();
+                break;
+            case 'epg':
+                this.loadEPG();
+                break;
         }
     }
 
@@ -859,15 +994,25 @@ class IPTVPlayer {
     }
 
     filterContent(type, query) {
-        const container = document.getElementById(`${type}-list`);
-        const items = container.querySelectorAll('.col-lg-3');
+        // Check if we're in categories view or content view
+        const categoriesContainer = document.getElementById(`${type}-categories`);
+        const listContainer = document.getElementById(`${type}-list`);
+        
+        const isShowingCategories = categoriesContainer.style.display !== 'none';
+        const targetContainer = isShowingCategories ? categoriesContainer : listContainer;
+        
+        const items = targetContainer.querySelectorAll('.col-lg-3');
         
         items.forEach(item => {
             const title = item.querySelector('.card-title').textContent.toLowerCase();
-            const categoryElement = item.querySelector('.text-muted');
-            const category = categoryElement ? categoryElement.textContent.toLowerCase() : '';
+            const textElements = item.querySelectorAll('.text-muted, .card-text');
+            let searchText = title;
             
-            if (title.includes(query.toLowerCase()) || category.includes(query.toLowerCase())) {
+            textElements.forEach(el => {
+                searchText += ' ' + el.textContent.toLowerCase();
+            });
+            
+            if (searchText.includes(query.toLowerCase())) {
                 item.style.display = 'block';
             } else {
                 item.style.display = 'none';
@@ -1000,6 +1145,18 @@ function disconnect() {
 
 function loadEPG() {
     player.loadEPG();
+}
+
+function showChannelCategories() {
+    player.showChannelCategories();
+}
+
+function showMovieCategories() {
+    player.showMovieCategories();
+}
+
+function showSeriesCategories() {
+    player.showSeriesCategories();
 }
 
 // Initialize the application

@@ -177,7 +177,12 @@
                             <!-- Seção de Canais -->
                             <div id="channels-section" class="content-section active">
                                 <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h2 class="text-white mb-0"><i class="fas fa-tv me-2"></i>Canais</h2>
+                                    <div class="d-flex align-items-center">
+                                        <h2 class="text-white mb-0 me-3"><i class="fas fa-tv me-2"></i>Canais</h2>
+                                        <button id="back-to-channel-categories" class="btn btn-outline-secondary btn-sm d-none" onclick="showChannelCategories()">
+                                            <i class="fas fa-arrow-left me-1"></i>Categorias
+                                        </button>
+                                    </div>
                                     <div class="input-group" style="max-width: 300px;">
                                         <span class="input-group-text bg-dark border-secondary">
                                             <i class="fas fa-search text-white"></i>
@@ -186,13 +191,19 @@
                                                id="channels-search" placeholder="Buscar canais...">
                                     </div>
                                 </div>
+                                <div id="channels-categories" class="row g-3"></div>
                                 <div id="channels-list" class="row g-3"></div>
                             </div>
 
                             <!-- Seção de Filmes -->
                             <div id="movies-section" class="content-section">
                                 <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h2 class="text-white mb-0"><i class="fas fa-film me-2"></i>Filmes</h2>
+                                    <div class="d-flex align-items-center">
+                                        <h2 class="text-white mb-0 me-3"><i class="fas fa-film me-2"></i>Filmes</h2>
+                                        <button id="back-to-movie-categories" class="btn btn-outline-secondary btn-sm d-none" onclick="showMovieCategories()">
+                                            <i class="fas fa-arrow-left me-1"></i>Categorias
+                                        </button>
+                                    </div>
                                     <div class="input-group" style="max-width: 300px;">
                                         <span class="input-group-text bg-dark border-secondary">
                                             <i class="fas fa-search text-white"></i>
@@ -201,13 +212,19 @@
                                                id="movies-search" placeholder="Buscar filmes...">
                                     </div>
                                 </div>
+                                <div id="movies-categories" class="row g-3"></div>
                                 <div id="movies-list" class="row g-3"></div>
                             </div>
 
                             <!-- Seção de Séries -->
                             <div id="series-section" class="content-section">
                                 <div class="d-flex justify-content-between align-items-center mb-4">
-                                    <h2 class="text-white mb-0"><i class="fas fa-video me-2"></i>Séries</h2>
+                                    <div class="d-flex align-items-center">
+                                        <h2 class="text-white mb-0 me-3"><i class="fas fa-video me-2"></i>Séries</h2>
+                                        <button id="back-to-series-categories" class="btn btn-outline-secondary btn-sm d-none" onclick="showSeriesCategories()">
+                                            <i class="fas fa-arrow-left me-1"></i>Categorias
+                                        </button>
+                                    </div>
                                     <div class="input-group" style="max-width: 300px;">
                                         <span class="input-group-text bg-dark border-secondary">
                                             <i class="fas fa-search text-white"></i>
@@ -216,6 +233,7 @@
                                                id="series-search" placeholder="Buscar séries...">
                                     </div>
                                 </div>
+                                <div id="series-categories" class="row g-3"></div>
                                 <div id="series-list" class="row g-3"></div>
                             </div>
 

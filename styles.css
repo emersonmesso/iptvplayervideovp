@@ -112,6 +112,30 @@ body {
     border-left: 3px solid #ffd700;
 }
 
+/* Category cards */
+.category-card {
+    transition: all 0.3s ease;
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+    background: linear-gradient(135deg, #2a5298 0%, #1e3c72 100%) !important;
+}
+
+/* Hide elements by default for Xtream */
+#channels-categories,
+#movies-categories,
+#series-categories {
+    display: none;
+}
+
+#channels-list,
+#movies-list,
+#series-list {
+    display: flex;
+}
+
 /* Screens */
 .screen {
     display: none !important;
