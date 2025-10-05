@@ -9,6 +9,11 @@ class IPTVPlayer {
         this.currentPlayer = null;
         this.currentSection = 'channels';
         
+        // Xtream categories for on-demand loading
+        this.channelCategories = [];
+        this.movieCategories = [];
+        this.seriesCategories = [];
+        
         this.init();
     }
 
@@ -60,7 +65,7 @@ class IPTVPlayer {
         document.getElementById('epg-date').valueAsDate = new Date();
     }
 
-    loadStoredConnection() {
+    async loadStoredConnection() {
         const stored = localStorage.getItem('iptv-connection');
         if (stored) {
             try {
@@ -68,9 +73,17 @@ class IPTVPlayer {
                 this.connectionType = data.type;
                 this.connectionData = data.data;
                 this.showScreen('main-screen');
-                this.loadContent();
+                
+                if (this.connectionType === 'xtream') {
+                    await this.loadXtreamCategories();
+                    this.displayInitialContent();
+                } else {
+                    this.loadContent();
+                }
             } catch (error) {
                 console.error('Error loading stored connection:', error);
+                // If error, show connection selector
+                this.showScreen('connection-selector');
             }
         }
     }
@@ -148,10 +161,13 @@ class IPTVPlayer {
                     password: password
                 };
 
-                await this.loadXtreamContent();
+                // Load only categories, not all content
+                await this.loadXtreamCategories();
                 this.saveConnection();
                 this.showScreen('main-screen');
-                this.displayContent();
+                
+                // Initialize with empty content - will load on demand
+                this.displayInitialContent();
             } else {
                 throw new Error('Authentication failed');
             }
@@ -171,84 +187,147 @@ class IPTVPlayer {
         }
     }
 
-    async loadXtreamContent() {
+    async loadXtreamCategories() {
         const { url, username, password } = this.connectionData;
         const baseUrl = `${url}/player_api.php?username=${username}&password=${password}`;
 
         try {
-            // Load live channels
-            const channelsResponse = await this.fetchWithCORS(`${baseUrl}&action=get_live_categories`);
-            const categories = await channelsResponse.json();
-            
+            // Load categories only, not the streams
+            const [channelCategoriesResponse, movieCategoriesResponse, seriesCategoriesResponse] = await Promise.all([
+                this.fetchWithCORS(`${baseUrl}&action=get_live_categories`),
+                this.fetchWithCORS(`${baseUrl}&action=get_vod_categories`),
+                this.fetchWithCORS(`${baseUrl}&action=get_series_categories`)
+            ]);
+
+            this.channelCategories = await channelCategoriesResponse.json();
+            this.movieCategories = await movieCategoriesResponse.json();
+            this.seriesCategories = await seriesCategoriesResponse.json();
+
+            // Initialize empty arrays - content will be loaded on demand
             this.channels = [];
-            for (const category of categories) {
-                const streamsResponse = await this.fetchWithCORS(`${baseUrl}&action=get_live_streams&category_id=${category.category_id}`);
-                const streams = await streamsResponse.json();
-                
-                streams.forEach(stream => {
-                    this.channels.push({
-                        name: stream.name,
-                        url: `${url}/live/${username}/${password}/${stream.stream_id}.m3u8`,
-                        logo: stream.stream_icon,
-                        category: category.category_name,
-                        epg_channel_id: stream.epg_channel_id
-                    });
-                });
-            }
-
-            // Load movies
-            const movieCategoriesResponse = await this.fetchWithCORS(`${baseUrl}&action=get_vod_categories`);
-            const movieCategories = await movieCategoriesResponse.json();
-            
             this.movies = [];
-            for (const category of movieCategories.slice(0, 5)) { // Limit to first 5 categories
-                const moviesResponse = await this.fetchWithCORS(`${baseUrl}&action=get_vod_streams&category_id=${category.category_id}`);
-                const movieStreams = await moviesResponse.json();
-                
-                movieStreams.forEach(movie => {
-                    this.movies.push({
-                        name: movie.name,
-                        url: `${url}/movie/${username}/${password}/${movie.stream_id}.${movie.container_extension}`,
-                        logo: movie.stream_icon,
-                        category: category.category_name,
-                        plot: movie.plot,
-                        year: movie.year,
-                        rating: movie.rating_5based
-                    });
-                });
-            }
-
-            // Load series
-            const seriesCategoriesResponse = await this.fetchWithCORS(`${baseUrl}&action=get_series_categories`);
-            const seriesCategories = await seriesCategoriesResponse.json();
-            
             this.series = [];
-            for (const category of seriesCategories.slice(0, 3)) { // Limit to first 3 categories
-                const seriesResponse = await this.fetchWithCORS(`${baseUrl}&action=get_series&category_id=${category.category_id}`);
-                const seriesStreams = await seriesResponse.json();
-                
-                seriesStreams.forEach(serie => {
-                    this.series.push({
-                        name: serie.name,
-                        logo: serie.cover,
-                        category: category.category_name,
-                        plot: serie.plot,
-                        year: serie.year,
-                        rating: serie.rating_5based,
-                        series_id: serie.series_id
+            this.epgData = {};
+
+            console.log('Categories loaded successfully');
+        } catch (error) {
+            console.error('Error loading categories:', error);
+            throw error;
+        }
+    }
+
+    async loadXtreamChannels(categoryId = null) {
+        const { url, username, password } = this.connectionData;
+        const baseUrl = `${url}/player_api.php?username=${username}&password=${password}`;
+
+        try {
+            let streams = [];
+            if (categoryId) {
+                const response = await this.fetchWithCORS(`${baseUrl}&action=get_live_streams&category_id=${categoryId}`);
+                streams = await response.json();
+            } else {
+                // Load all categories
+                for (const category of this.channelCategories.slice(0, 10)) { // Limit to first 10 categories
+                    const response = await this.fetchWithCORS(`${baseUrl}&action=get_live_streams&category_id=${category.category_id}`);
+                    const categoryStreams = await response.json();
+                    
+                    categoryStreams.forEach(stream => {
+                        stream.category_name = category.category_name;
                     });
-                });
+                    
+                    streams = streams.concat(categoryStreams);
+                }
             }
 
-            // Load EPG
-            const epgResponse = await this.fetchWithCORS(`${baseUrl}&action=get_simple_data_table&stream_id=${this.channels[0]?.epg_channel_id || ''}`);
-            if (epgResponse.ok) {
-                const epgData = await epgResponse.json();
-                this.processXtreamEPG(epgData);
-            }
+            return streams.map(stream => ({
+                name: stream.name,
+                url: `${url}/live/${username}/${password}/${stream.stream_id}.m3u8`,
+                logo: stream.stream_icon,
+                category: stream.category_name || 'Sem Categoria',
+                epg_channel_id: stream.epg_channel_id
+            }));
 
         } catch (error) {
-            console.error('Error loading Xtream content:', error);
+            console.error('Error loading channels:', error);
+            return [];
+        }
+    }
+
+    async loadXtreamMovies(categoryId = null) {
+        const { url, username, password } = this.connectionData;
+        const baseUrl = `${url}/player_api.php?username=${username}&password=${password}`;
+
+        try {
+            let movies = [];
+            if (categoryId) {
+                const response = await this.fetchWithCORS(`${baseUrl}&action=get_vod_streams&category_id=${categoryId}`);
+                movies = await response.json();
+            } else {
+                // Load first 5 categories
+                for (const category of this.movieCategories.slice(0, 5)) {
+                    const response = await this.fetchWithCORS(`${baseUrl}&action=get_vod_streams&category_id=${category.category_id}`);
+                    const categoryMovies = await response.json();
+                    
+                    categoryMovies.forEach(movie => {
+                        movie.category_name = category.category_name;
+                    });
+                    
+                    movies = movies.concat(categoryMovies);
+                }
+            }
+
+            return movies.map(movie => ({
+                name: movie.name,
+                url: `${url}/movie/${username}/${password}/${movie.stream_id}.${movie.container_extension}`,
+                logo: movie.stream_icon,
+                category: movie.category_name || 'Sem Categoria',
+                plot: movie.plot,
+                year: movie.year,
+                rating: movie.rating_5based
+            }));
+
+        } catch (error) {
+            console.error('Error loading movies:', error);
+            return [];
+        }
+    }
+
+    async loadXtreamSeries(categoryId = null) {
+        const { url, username, password } = this.connectionData;
+        const baseUrl = `${url}/player_api.php?username=${username}&password=${password}`;
+
+        try {
+            let series = [];
+            if (categoryId) {
+                const response = await this.fetchWithCORS(`${baseUrl}&action=get_series&category_id=${categoryId}`);
+                series = await response.json();
+            } else {
+                // Load first 3 categories
+                for (const category of this.seriesCategories.slice(0, 3)) {
+                    const response = await this.fetchWithCORS(`${baseUrl}&action=get_series&category_id=${category.category_id}`);
+                    const categorySeries = await response.json();
+                    
+                    categorySeries.forEach(serie => {
+                        serie.category_name = category.category_name;
+                    });
+                    
+                    series = series.concat(categorySeries);
+                }
+            }
+
+            return series.map(serie => ({
+                name: serie.name,
+                logo: serie.cover,
+                category: serie.category_name || 'Sem Categoria',
+                plot: serie.plot,
+                year: serie.year,
+                rating: serie.rating_5based,
+                series_id: serie.series_id
+            }));
+
+        } catch (error) {
+            console.error('Error loading series:', error);
+            return [];
         }
     }
 
@@ -390,10 +469,12 @@ class IPTVPlayer {
             if (this.connectionData.epgUrl) {
                 this.loadEPGFromURL(this.connectionData.epgUrl);
             }
+            this.displayContent();
         } else if (this.connectionType === 'xtream') {
-            this.loadXtreamContent();
+            this.loadXtreamCategories().then(() => {
+                this.displayInitialContent();
+            });
         }
-        this.displayContent();
     }
 
     displayContent() {
@@ -403,34 +484,94 @@ class IPTVPlayer {
         this.loadEPG();
     }
 
-    displayChannels() {
-        const container = document.getElementById('channels-list');
-        container.innerHTML = '';
+    displayInitialContent() {
+        // Show info message for each section
+        this.showInfoMessage('channels-list', 'Canais', 'Clique na aba "Canais" para carregar o conteúdo');
+        this.showInfoMessage('movies-list', 'Filmes', 'Clique na aba "Filmes" para carregar o conteúdo');
+        this.showInfoMessage('series-list', 'Séries', 'Clique na aba "Séries" para carregar o conteúdo');
+        
+        // Load channels immediately for the active section
+        if (this.currentSection === 'channels') {
+            this.displayChannels();
+        }
+        
+        this.loadEPG();
+    }
 
+    showInfoMessage(containerId, title, message) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = `
+            <div class="col-12">
+                <div class="card bg-dark bg-opacity-50 text-white border-secondary">
+                    <div class="card-body text-center p-5">
+                        <i class="fas fa-info-circle fa-3x text-info mb-3"></i>
+                        <h4 class="text-info">${title}</h4>
+                        <p class="text-white-50">${message}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    async displayChannels() {
+        const container = document.getElementById('channels-list');
+        
+        if (this.connectionType === 'xtream' && this.channels.length === 0) {
+            this.showLoadingMessage('channels-list', 'Carregando canais...');
+            this.channels = await this.loadXtreamChannels();
+        }
+        
+        container.innerHTML = '';
         this.channels.forEach(channel => {
             const channelElement = this.createContentItem(channel, 'channel');
             container.appendChild(channelElement);
         });
     }
 
-    displayMovies() {
+    async displayMovies() {
         const container = document.getElementById('movies-list');
+        
+        if (this.connectionType === 'xtream' && this.movies.length === 0) {
+            this.showLoadingMessage('movies-list', 'Carregando filmes...');
+            this.movies = await this.loadXtreamMovies();
+        }
+        
         container.innerHTML = '';
-
         this.movies.forEach(movie => {
             const movieElement = this.createContentItem(movie, 'movie');
             container.appendChild(movieElement);
         });
     }
 
-    displaySeries() {
+    async displaySeries() {
         const container = document.getElementById('series-list');
+        
+        if (this.connectionType === 'xtream' && this.series.length === 0) {
+            this.showLoadingMessage('series-list', 'Carregando séries...');
+            this.series = await this.loadXtreamSeries();
+        }
+        
         container.innerHTML = '';
-
         this.series.forEach(serie => {
             const serieElement = this.createContentItem(serie, 'serie');
             container.appendChild(serieElement);
         });
+    }
+
+    showLoadingMessage(containerId, message) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = `
+            <div class="col-12">
+                <div class="card bg-dark text-white border-secondary">
+                    <div class="card-body text-center p-4">
+                        <div class="spinner-border text-warning mb-3" role="status">
+                            <span class="visually-hidden">Carregando...</span>
+                        </div>
+                        <h5>${message}</h5>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     createContentItem(item, type) {
@@ -619,7 +760,7 @@ class IPTVPlayer {
         }
     }
 
-    showSection(section) {
+    async showSection(section) {
         // Update navigation
         document.querySelectorAll('.nav-link').forEach(item => {
             item.classList.remove('active');
@@ -636,6 +777,24 @@ class IPTVPlayer {
         targetSection.style.display = 'block';
 
         this.currentSection = section;
+
+        // Load content on demand
+        if (this.connectionType === 'xtream') {
+            switch (section) {
+                case 'channels':
+                    await this.displayChannels();
+                    break;
+                case 'movies':
+                    await this.displayMovies();
+                    break;
+                case 'series':
+                    await this.displaySeries();
+                    break;
+                case 'epg':
+                    this.loadEPG();
+                    break;
+            }
+        }
     }
 
     loadEPG() {
@@ -746,6 +905,9 @@ class IPTVPlayer {
             this.movies = [];
             this.series = [];
             this.epgData = {};
+            this.channelCategories = [];
+            this.movieCategories = [];
+            this.seriesCategories = [];
             
             if (this.currentPlayer) {
                 this.currentPlayer.destroy();
