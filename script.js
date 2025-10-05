@@ -21,7 +21,6 @@ class IPTVPlayer {
         
         // Favorites system
         this.favorites = [];
-        this.currentSidePlayer = null;
         
         this.init();
     }
@@ -46,6 +45,18 @@ class IPTVPlayer {
         document.getElementById('m3u-form').addEventListener('submit', (e) => {
             e.preventDefault();
             this.connectM3U();
+        });
+        
+        // Fullscreen change event
+        document.addEventListener('fullscreenchange', () => {
+            const icon = document.getElementById('fullscreen-icon');
+            if (icon) {
+                if (document.fullscreenElement) {
+                    icon.className = 'fas fa-compress';
+                } else {
+                    icon.className = 'fas fa-expand';
+                }
+            }
         });
 
         document.getElementById('xtream-form').addEventListener('submit', (e) => {
@@ -737,16 +748,7 @@ class IPTVPlayer {
                         ${item.year ? `<small class="text-muted">${item.year}</small>` : '<span></span>'}
                         ${item.rating ? `<small class="text-warning">⭐ ${item.rating}</small>` : ''}
                     </div>
-                    ${isLive ? `
-                    <div class="mt-2">
-                        <button class="btn btn-sm btn-outline-warning me-1 side-player-btn" onclick="event.stopPropagation(); player.playChannelSide(${JSON.stringify(item).replace(/"/g, '&quot;')})">
-                            <i class="fas fa-expand-arrows-alt me-1"></i>Lateral
-                        </button>
-                        <button class="btn btn-sm btn-warning" onclick="event.stopPropagation(); player.playContent(${JSON.stringify(item).replace(/"/g, '&quot;')})">
-                            <i class="fas fa-play me-1"></i>Tela Cheia
-                        </button>
-                    </div>
-                    ` : ''}
+
                 </div>
             </div>
         `;
@@ -807,15 +809,22 @@ class IPTVPlayer {
         const video = document.getElementById('video-player');
         const title = document.getElementById('player-title');
 
-        title.textContent = item.name;
+        // Store current item for reload functionality
+        this.currentItem = item;
+        
+        title.innerHTML = `<i class="fas fa-tv me-2"></i>${item.name}`;
         modal.show();
 
-        // Initialize HLS player
+        // Destroy existing players
+        if (this.currentPlayer) {
+            this.currentPlayer.destroy();
+        }
+        if (this.plyrPlayer) {
+            this.plyrPlayer.destroy();
+        }
+
+        // Initialize HLS with Plyr
         if (Hls.isSupported()) {
-            if (this.currentPlayer) {
-                this.currentPlayer.destroy();
-            }
-            
             this.currentPlayer = new Hls({
                 debug: false,
                 enableWorker: true,
@@ -825,6 +834,32 @@ class IPTVPlayer {
             
             this.currentPlayer.loadSource(item.url);
             this.currentPlayer.attachMedia(video);
+            
+            // Initialize Plyr
+            this.plyrPlayer = new Plyr(video, {
+                controls: [
+                    'play-large',
+                    'restart',
+                    'rewind',
+                    'play',
+                    'fast-forward',
+                    'progress',
+                    'current-time',
+                    'duration',
+                    'mute',
+                    'volume',
+                    'captions',
+                    'settings',
+                    'pip',
+                    'airplay',
+                    'fullscreen'
+                ],
+                settings: ['captions', 'quality', 'speed'],
+                quality: {
+                    default: 'auto',
+                    options: ['auto']
+                }
+            });
             
             this.currentPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
                 video.play().catch(e => console.log('Autoplay prevented:', e));
@@ -840,6 +875,7 @@ class IPTVPlayer {
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             // Native HLS support (Safari)
             video.src = item.url;
+            this.plyrPlayer = new Plyr(video);
             video.play().catch(e => console.log('Autoplay prevented:', e));
         } else {
             Swal.fire({
@@ -907,12 +943,82 @@ class IPTVPlayer {
         if (modal) {
             modal.hide();
         }
-        video.pause();
-        video.src = '';
+        
+        if (video) {
+            video.pause();
+            video.src = '';
+        }
         
         if (this.currentPlayer) {
             this.currentPlayer.destroy();
             this.currentPlayer = null;
+        }
+        
+        if (this.plyrPlayer) {
+            this.plyrPlayer.destroy();
+            this.plyrPlayer = null;
+        }
+        
+        this.currentItem = null;
+    }
+
+    reloadVideo() {
+        if (this.currentItem) {
+            // Pause current video
+            const video = document.getElementById('video-player');
+            if (video) {
+                video.pause();
+            }
+            
+            // Show loading indicator
+            Swal.fire({
+                title: 'Recarregando...',
+                text: 'Reiniciando o vídeo',
+                icon: 'info',
+                timer: 1500,
+                showConfirmButton: false,
+                background: '#1e3c72',
+                color: '#ffffff'
+            });
+            
+            // Reload the video after a short delay
+            setTimeout(() => {
+                this.playContent(this.currentItem);
+            }, 500);
+        }
+    }
+
+    toggleFullscreen() {
+        const video = document.getElementById('video-player');
+        const modal = document.getElementById('player-modal');
+        const icon = document.getElementById('fullscreen-icon');
+        
+        if (!document.fullscreenElement) {
+            // Enter fullscreen
+            if (modal.requestFullscreen) {
+                modal.requestFullscreen();
+            } else if (modal.webkitRequestFullscreen) {
+                modal.webkitRequestFullscreen();
+            } else if (modal.msRequestFullscreen) {
+                modal.msRequestFullscreen();
+            }
+            
+            if (icon) {
+                icon.className = 'fas fa-compress';
+            }
+        } else {
+            // Exit fullscreen
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+            
+            if (icon) {
+                icon.className = 'fas fa-expand';
+            }
         }
     }
 
@@ -1355,130 +1461,7 @@ class IPTVPlayer {
         });
     }
 
-    // Player Lateral para Canais
-    playChannelSide(channel) {
-        const sidePlayer = document.getElementById('side-player');
-        const contentArea = document.getElementById('main-content-area');
-        const video = document.getElementById('side-video-player');
-        const title = document.getElementById('side-player-title');
 
-        // Show side player
-        sidePlayer.classList.remove('d-none');
-        
-        // Adjust content area
-        contentArea.classList.remove('col-lg-10', 'col-md-9');
-        contentArea.classList.add('col-lg-7', 'col-md-5');
-
-        title.textContent = channel.name;
-
-        // Stop current player if exists
-        if (this.currentSidePlayer) {
-            this.currentSidePlayer.destroy();
-        }
-
-        // Initialize HLS player for side player
-        if (Hls.isSupported()) {
-            this.currentSidePlayer = new Hls({
-                debug: false,
-                enableWorker: true,
-                lowLatencyMode: true,
-                backBufferLength: 90
-            });
-            
-            this.currentSidePlayer.loadSource(channel.url);
-            this.currentSidePlayer.attachMedia(video);
-            
-            this.currentSidePlayer.on(Hls.Events.MANIFEST_PARSED, () => {
-                video.play().catch(e => console.log('Autoplay prevented:', e));
-            });
-
-            this.currentSidePlayer.on(Hls.Events.ERROR, (event, data) => {
-                console.error('HLS Error:', data);
-                if (data.fatal) {
-                    this.handleSidePlayerError(channel);
-                }
-            });
-            
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-            video.src = channel.url;
-            video.play().catch(e => console.log('Autoplay prevented:', e));
-        }
-
-        // Update EPG info
-        this.updateSidePlayerEPG(channel);
-    }
-
-    handleSidePlayerError(channel) {
-        const video = document.getElementById('side-video-player');
-        video.src = channel.url;
-        video.play().catch(e => {
-            console.error('Failed to play channel:', e);
-        });
-    }
-
-    updateSidePlayerEPG(channel) {
-        const currentProgram = document.getElementById('side-current-program');
-        const nextProgram = document.getElementById('side-next-program');
-        
-        if (channel.epg_channel_id && this.epgData[channel.epg_channel_id]) {
-            const now = new Date();
-            const programs = this.epgData[channel.epg_channel_id];
-            
-            const current = programs.find(p => p.start <= now && p.stop > now);
-            const next = programs.find(p => p.start > now);
-            
-            if (current) {
-                currentProgram.innerHTML = `<strong>Agora:</strong> ${current.title}`;
-            } else {
-                currentProgram.innerHTML = '';
-            }
-            
-            if (next) {
-                nextProgram.innerHTML = `<strong>Próximo:</strong> ${next.title} (${next.start.toLocaleTimeString()})`;
-            } else {
-                nextProgram.innerHTML = '';
-            }
-        } else {
-            currentProgram.innerHTML = '';
-            nextProgram.innerHTML = '';
-        }
-    }
-
-    closeSidePlayer() {
-        const sidePlayer = document.getElementById('side-player');
-        const contentArea = document.getElementById('main-content-area');
-        const video = document.getElementById('side-video-player');
-
-        // Hide side player
-        sidePlayer.classList.add('d-none');
-        
-        // Restore content area
-        contentArea.classList.remove('col-lg-7', 'col-md-5');
-        contentArea.classList.add('col-lg-10', 'col-md-9');
-
-        // Stop video
-        video.pause();
-        video.src = '';
-        
-        if (this.currentSidePlayer) {
-            this.currentSidePlayer.destroy();
-            this.currentSidePlayer = null;
-        }
-    }
-
-    expandPlayer() {
-        // Get current channel data
-        const currentChannel = {
-            name: document.getElementById('side-player-title').textContent,
-            url: document.getElementById('side-video-player').src || (this.currentSidePlayer ? this.currentSidePlayer.url : '')
-        };
-
-        // Close side player
-        this.closeSidePlayer();
-
-        // Open in full modal
-        this.playContent(currentChannel);
-    }
 }
 
 // Global functions for HTML event handlers
@@ -1529,6 +1512,19 @@ function loadFavorite(id) {
 
 function deleteFavorite(id) {
     player.deleteFavorite(id);
+}
+
+// Player control functions
+function closePlayer() {
+    player.closePlayer();
+}
+
+function reloadVideo() {
+    player.reloadVideo();
+}
+
+function toggleFullscreen() {
+    player.toggleFullscreen();
 }
 
 // Initialize the application

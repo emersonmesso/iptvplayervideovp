@@ -10,6 +10,8 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- SweetAlert2 -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.min.css" rel="stylesheet">
+    <!-- Plyr.js CSS -->
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
     <!-- Custom CSS -->
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -175,59 +177,7 @@
                         </div>
                     </div>
                     
-                    <!-- Player Lateral -->
-                    <div id="side-player" class="col-md-4 col-lg-3 d-none">
-                        <div class="bg-dark bg-opacity-75 h-100">
-                            <div class="p-3 border-bottom border-secondary">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <h6 class="text-white mb-0" id="side-player-title">Canal</h6>
-                                    <div>
-                                        <button class="btn btn-sm btn-outline-light me-1" onclick="expandPlayer()">
-                                            <i class="fas fa-expand"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger" onclick="closeSidePlayer()">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="position-relative">
-                                <video id="side-video-player" class="w-100" controls style="height: 250px; object-fit: cover;"></video>
-                            </div>
-                            <div class="p-3">
-                                <div id="side-current-program" class="text-white mb-1 small"></div>
-                                <div id="side-next-program" class="text-white-50 small"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Side Player for Live Channels -->
-                    <div id="side-player" class="col-md-4 col-lg-3 bg-dark border-start d-none">
-                        <div class="p-3">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h6 class="text-white mb-0">
-                                    <i class="fas fa-tv me-2"></i><span id="current-channel-name">Canal</span>
-                                </h6>
-                                <div class="btn-group btn-group-sm">
-                                    <button class="btn btn-outline-light" onclick="toggleFullscreen()" title="Tela Cheia">
-                                        <i class="fas fa-expand"></i>
-                                    </button>
-                                    <button class="btn btn-outline-danger" onclick="closeSidePlayer()" title="Fechar">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="side-player-container">
-                                <video id="side-video-player" class="w-100" controls muted></video>
-                            </div>
-                            <div class="side-player-info mt-3">
-                                <div id="side-current-program" class="text-white-50 small"></div>
-                                <div id="side-next-program" class="text-white-50 small"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="main-content-area" class="col-md-9 col-lg-10">
+                    <div id="main-content-area" class="col-12">
                         <div class="p-4">
                             <!-- Seção de Canais -->
                             <div id="channels-section" class="content-section active">
@@ -357,21 +307,51 @@
 
         <!-- Player Modal -->
         <div class="modal fade" id="player-modal" tabindex="-1" aria-labelledby="playerModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-xl">
+            <div class="modal-dialog modal-fullscreen">
                 <div class="modal-content bg-dark">
-                    <div class="modal-header border-secondary">
-                        <h5 class="modal-title text-white" id="player-title">Player</h5>
-                        <button type="button" class="btn-close btn-close-white" onclick="closePlayer()" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body p-0">
-                        <div class="player-container">
-                            <video id="video-player" class="w-100" controls></video>
+                    <div class="modal-header border-secondary py-2">
+                        <h6 class="modal-title text-white mb-0" id="player-title">
+                            <i class="fas fa-tv me-2"></i>Player
+                        </h6>
+                        <div class="d-flex align-items-center">
+                            <button type="button" class="btn btn-sm btn-outline-warning me-2" onclick="reloadVideo()" title="Recarregar Vídeo">
+                                <i class="fas fa-redo"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-light me-2" onclick="toggleFullscreen()" title="Tela Cheia">
+                                <i class="fas fa-expand"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="closePlayer()" title="Fechar Player">
+                                <i class="fas fa-times"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="modal-footer border-secondary bg-dark bg-opacity-75">
-                        <div class="player-info w-100">
-                            <div id="current-program" class="text-white mb-1"></div>
-                            <div id="next-program" class="text-white-50"></div>
+                    <div class="modal-body p-0 position-relative">
+                        <div class="player-container">
+                            <video id="video-player" class="w-100 h-100" controls playsinline></video>
+                        </div>
+                        <!-- Player Controls Overlay -->
+                        <div id="player-controls-overlay" class="position-absolute bottom-0 start-0 w-100 bg-dark bg-opacity-75 p-3" style="z-index: 10;">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <div class="player-info">
+                                        <div id="current-program" class="text-white mb-1 small"></div>
+                                        <div id="next-program" class="text-white-50 small"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-warning" onclick="reloadVideo()" title="Recarregar">
+                                            <i class="fas fa-redo"></i>
+                                        </button>
+                                        <button class="btn btn-outline-light" onclick="toggleFullscreen()" title="Fullscreen">
+                                            <i class="fas fa-expand" id="fullscreen-icon"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="closePlayer()" title="Fechar">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -397,6 +377,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.all.min.js"></script>
     <!-- HLS.js -->
     <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!-- Plyr.js -->
+    <script src="https://cdn.plyr.io/3.7.8/plyr.min.js"></script>
     <!-- Custom JS -->
     <script src="script.js"></script>
 </body>

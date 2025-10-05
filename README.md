@@ -1,171 +1,141 @@
-# IPTV Player Video VP
+# IPTV Player Web
 
-Um player web completo para reprodução de streams IPTV com suporte a listas M3U e servidores Xtream Codes.
+Um reprodutor de IPTV completo baseado em navegador com suporte para listas M3U e servidores Xtream Codes.
 
-## 🚀 Funcionalidades
+## ✨ Funcionalidades
 
-### ✨ Principais Recursos
-- **Múltiplos tipos de conexão**: Suporte a listas M3U e servidores Xtream Codes
-- **Reprodução de vídeo avançada**: Player HLS.js para streams M3U8
-- **Interface responsiva**: Design moderno e adaptável para todos os dispositivos
-- **EPG (Guia de Programação)**: Visualização de programação dos canais
-- **Busca inteligente**: Pesquisa em tempo real por canais, filmes e séries
-- **Armazenamento local**: Salva configurações de conexão para uso posterior
+### 🎯 Reprodução de Mídia
+- ✅ **Suporte a M3U8**: Reprodução de streams M3U8 com HLS.js
+- ✅ **Suporte a Xtream Codes**: Integração completa com servidores Xtream
+- ✅ **Player Avançado**: Player com Plyr.js para melhor experiência
+- ✅ **Controles Completos**: Fullscreen, recarregar vídeo e fechar player
+- ✅ **EPG**: Suporte a guia eletrônica de programação
 
-### 📺 Tipos de Conteúdo Suportados
-- **Canais ao vivo**: Streams de TV em tempo real
-- **Filmes**: Catálogo completo de filmes on-demand
-- **Séries**: Episódios organizados por temporada
-- **EPG**: Programação detalhada dos canais
+### 🎨 Interface
+- ✅ **Interface Moderna**: Bootstrap 5 com design glassmorphism
+- ✅ **Alertas Elegantes**: SweetAlert2 para notificações
+- ✅ **Responsivo**: Funciona perfeitamente em desktop, tablet e mobile
+- ✅ **Navegação por Categorias**: Canais, Filmes e Séries organizados
+- ✅ **Tema Escuro**: Visual moderno com gradientes
 
-### 🔧 Funcionalidades Técnicas
-- **Player HLS nativo**: Reprodução otimizada de streams M3U8
-- **Fallback para CORS**: Sistema de proxy para contornar limitações de CORS
-- **Cache inteligente**: Armazenamento local dos dados para acesso rápido
-- **Interface modal**: Player em tela cheia com controles avançados
-- **Indicadores visuais**: Status ao vivo, classificações e informações detalhadas
+### � Gerenciamento
+- ✅ **Sistema de Favoritos**: Salve e gerencie suas listas favoritas
+- ✅ **Persistência Local**: localStorage para salvar conexões
+- ✅ **Histórico**: Acesso rápido às listas utilizadas
+
+### 📱 Experiência do Usuário
+- ✅ **Carregamento Dinâmico**: APIs carregadas sob demanda
+- ✅ **Busca e Filtros**: Navegação intuitiva por categorias
+- ✅ **Indicadores Visuais**: Status de conexão e carregamento
+- ✅ **Multi-formato**: Suporte a diversos formatos de vídeo
 
 ## 🛠️ Tecnologias Utilizadas
 
-- **HTML5**: Estrutura semântica moderna
-- **CSS3**: Animações, gradientes e design responsivo
-- **JavaScript ES6+**: Programação orientada a objetos
-- **HLS.js**: Biblioteca para reprodução de streams HLS
-- **Font Awesome**: Ícones vetoriais
-- **Local Storage**: Persistência de dados no navegador
+- **Frontend**: HTML5, CSS3, JavaScript (ES6+)
+- **Framework CSS**: Bootstrap 5.3.2
+- **Player**: HLS.js + Plyr.js para reprodução avançada
+- **UI/UX**: SweetAlert2, Font Awesome
+- **Storage**: localStorage para persistência
 
-## 📱 Interface do Usuário
+## 📖 Como Usar
 
-### Tela Inicial
-- Seleção do tipo de conexão (M3U ou Xtream Codes)
-- Design atrativo com cards interativos
+### Primeira Conexão
+1. Abra o arquivo `index.html` em um navegador moderno
+2. Escolha entre **M3U** ou **Xtream Codes**
+3. Configure sua conexão:
+   - **M3U**: Cole a URL da lista ou faça upload do arquivo
+   - **Xtream**: Insira servidor, usuário e senha
 
-### Formulários de Conexão
-- **M3U**: URL da lista e EPG opcional
-- **Xtream Codes**: Servidor, usuário e senha
-- Validação em tempo real
+### Navegação
+4. Explore as categorias disponíveis
+5. Clique em qualquer conteúdo para reproduzir em player fullscreen
+6. Use os controles do player:
+   - **🔄 Recarregar**: Reinicia o vídeo atual
+   - **⛶ Fullscreen**: Alterna modo tela cheia
+   - **✕ Fechar**: Fecha o player
 
-### Tela Principal
-- **Sidebar navegável**: Canais, Filmes, Séries, EPG
-- **Área de conteúdo**: Grid responsivo com informações detalhadas
-- **Busca avançada**: Filtros por nome e categoria
-- **Header funcional**: Atualizar conteúdo e desconectar
+### Sistema de Favoritos
+6. Clique em **"💖 Favoritos"** no menu superior
+7. Salve sua conexão atual com **"Salvar Lista Atual"**
+8. Acesse rapidamente suas listas salvas
 
-### Player Modal
-- **Reprodução em tela cheia**: Interface limpa e funcional
-- **Informações do programa**: EPG em tempo real
-- **Controles nativos**: Play, pause, volume, fullscreen
-
-## 🚀 Como Usar
-
-1. **Acesse a aplicação**: Abra o arquivo `index.html` em seu navegador
-2. **Escolha o tipo de conexão**:
-   - **Lista M3U**: Informe a URL da sua lista M3U
-   - **Servidor Xtream**: Insira os dados do servidor
-3. **Aguarde o carregamento**: O sistema verificará a conexão e baixará o conteúdo
-4. **Navegue pelo conteúdo**: Use a sidebar para alternar entre seções
-5. **Reproduza o conteúdo**: Clique em qualquer item para iniciar a reprodução
-
-## 📋 Estrutura do Projeto
+## � Estrutura de Arquivos
 
 ```
-iptvplayervideovp/
-├── index.html          # Estrutura principal da aplicação
-├── styles.css          # Estilos e design responsivo
-├── script.js           # Lógica da aplicação e player
-└── README.md          # Documentação do projeto
+/workspaces/iptvplayervideovp/
+├── index.html      # Interface principal com modais e componentes
+├── script.js       # Lógica completa da aplicação
+├── styles.css      # Estilos customizados e temas
+└── README.md       # Documentação completa
 ```
 
-## 🔧 Configuração
+## 🎮 Funcionalidades por Tipo de Conteúdo
 
-### Requisitos
-- Navegador moderno com suporte a HTML5 e JavaScript ES6+
-- Conexão com a internet para carregar bibliotecas CDN
-- Acesso aos servidores IPTV (pode necessitar configuração de CORS)
+### 📺 Canais ao Vivo
+- Player em modal fullscreen otimizado
+- Indicador "AO VIVO" em tempo real
+- EPG com programação atual e próxima
+- Controles avançados: fullscreen, recarregar, fechar
 
-### CORS e Proxies
-Para desenvolvimento, a aplicação tenta contornar limitações de CORS usando:
-1. Requisições diretas (quando permitido pelo servidor)
-2. Proxy CORS como fallback (cors-anywhere.herokuapp.com)
+### 🎬 Filmes
+- Reprodução em modal tela cheia
+- Informações de classificação e ano
+- Sinopse e detalhes do filme
 
-**Nota**: Para produção, configure adequadamente as políticas CORS no servidor ou use um proxy próprio.
+### 📺 Séries
+- Navegação por temporadas e episódios
+- Lista de episódios organizada
+- Informações detalhadas de cada episódio
 
-## 🎯 Funcionalidades Detalhadas
+## 🔧 Compatibilidade
 
-### Sistema de Conexão M3U
-- Parse completo de listas M3U/M3U8
-- Extração de metadados (nome, logo, categoria, EPG ID)
-- Suporte a EPG em formato XML
-- Validação de URLs e conteúdo
+### Navegadores Suportados
+- **Chrome/Chromium** 60+
+- **Firefox** 55+
+- **Safari** 11+
+- **Edge** 79+
 
-### Sistema Xtream Codes
-- Autenticação com servidor
-- Carregamento de categorias (canais, filmes, séries)
-- Informações detalhadas de conteúdo
-- EPG integrado do servidor
-- Suporte a episódios de séries
+### Dispositivos
+- **Desktop**: Experiência completa com player fullscreen
+- **Tablet**: Interface adaptativa com controles otimizados
+- **Mobile**: Player responsivo com controles touch-friendly
 
-### Player HLS Avançado
-- Reprodução adaptativa de qualidade
-- Buffer inteligente para streaming
-- Tratamento de erros e reconexão
-- Suporte a legendas e múltiplas faixas de áudio
-- Controles personalizados
+## ⚡ Funcionalidades Técnicas
 
-### EPG (Electronic Program Guide)
-- Programação por data
-- Indicação de programa atual
-- Informações detalhadas dos programas
-- Navegação por canal
-- Integração com player
+### Conectividade
+- Parser M3U nativo otimizado
+- API Xtream Codes completa
+- CORS handling automático
+- Fallback para diferentes formatos
 
-## 🎨 Design e UX
+### Performance
+- Carregamento lazy de categorias
+- Cache inteligente de dados
+- Otimização de memória no player
+- Compressão de dados locais
 
-### Tema Visual
-- **Paleta de cores**: Azul profundo com acentos dourados
-- **Tipografia**: Segoe UI para legibilidade
-- **Efeitos**: Glassmorphism e animações suaves
-- **Responsividade**: Adaptação completa para mobile
+### Segurança
+- Validação de URLs e dados
+- Sanitização de inputs
+- Tratamento seguro de erros
+- Storage criptografado
 
-### Experiência do Usuário
-- **Navegação intuitiva**: Fluxo lógico e claro
-- **Feedback visual**: Loading, hover effects, status
-- **Acessibilidade**: Contraste adequado e navegação por teclado
-- **Performance**: Carregamento otimizado e cache inteligente
+## � Melhorias Futuras
 
-## 🛡️ Considerações de Segurança
+- [ ] Suporte a legendas automáticas
+- [ ] Sistema de busca global
+- [ ] Exportação/importação de favoritos
+- [ ] Modo offline para conteúdo local
+- [ ] Integração com serviços de streaming
 
-- **Validação de entrada**: Sanitização de URLs e dados
-- **Armazenamento seguro**: Dados sensíveis em localStorage
-- **Tratamento de erros**: Mensagens adequadas ao usuário
-- **CORS**: Configuração adequada para produção
+## 🎯 Uso Recomendado
 
-## 🔄 Atualizações Futuras
-
-### Planejado
-- [ ] Suporte a mais formatos de stream
-- [ ] Player com controles avançados
-- [ ] Sistema de favoritos
-- [ ] Histórico de reprodução
-- [ ] Configurações de qualidade
-- [ ] Suporte offline
-- [ ] API própria para proxy
-- [ ] Sistema de usuários
-- [ ] Playlists personalizadas
-- [ ] Chromecast integration
-
-## 📞 Suporte
-
-Para dúvidas, problemas ou sugestões:
-- Verifique a documentação completa
-- Teste com diferentes navegadores
-- Confirme a conectividade com os servidores IPTV
-- Verifique as configurações de CORS
-
-## 📄 Licença
-
-Este projeto é uma demonstração educacional. Use responsavelmente e respeite os direitos autorais do conteúdo acessado.
+1. **Para Listas M3U**: Ideal para listas estáticas e conteúdo local
+2. **Para Xtream Codes**: Perfeito para provedores IPTV profissionais
+3. **Player Fullscreen**: Experiência imersiva com controles avançados
+4. **Sistema de Favoritos**: Organize suas fontes de conteúdo favoritas
+5. **Controles de Player**: Use recarregar para problemas de conexão
 
 ---
 
-**IPTV Player Video VP** - Desenvolvido com ❤️ para a comunidade IPTV
+*Desenvolvido com foco na experiência do usuário e compatibilidade máxima.*
