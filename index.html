@@ -329,43 +329,29 @@
                             <i class="fas fa-tv me-2"></i>Player
                         </h6>
                         <div class="d-flex align-items-center">
-                            <button type="button" class="btn btn-sm btn-outline-warning me-2" onclick="reloadVideo()" title="Recarregar Vídeo">
+                            <button type="button" class="btn btn-sm btn-warning me-2" onclick="alert('Teste botão funcionando!')" title="Teste">
+                                TEST
+                            </button>
+                            <button type="button" id="reload-btn-header" class="btn btn-sm btn-outline-warning me-2" onclick="reloadVideo()" title="Recarregar Vídeo">
                                 <i class="fas fa-redo"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-light me-2" onclick="toggleFullscreen()" title="Tela Cheia">
-                                <i class="fas fa-expand"></i>
+                            <button type="button" id="fullscreen-btn-header" class="btn btn-sm btn-outline-light me-2" onclick="toggleFullscreen()" title="Tela Cheia">
+                                <i class="fas fa-expand" id="fullscreen-icon"></i>
                             </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="closePlayer()" title="Fechar Player">
+                            <button type="button" id="close-btn-header" class="btn btn-sm btn-outline-danger" onclick="closePlayer()" title="Fechar Player">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
                     </div>
-                    <div class="modal-body p-0 position-relative">
+                    <div class="modal-body p-0 position-relative" style="overflow: visible;">
                         <div class="player-container">
                             <video id="video-player" class="w-100 h-100" controls playsinline></video>
                         </div>
-                        <!-- Player Controls Overlay -->
-                        <div id="player-controls-overlay" class="position-absolute bottom-0 start-0 w-100 bg-dark bg-opacity-75 p-3" style="z-index: 10;">
-                            <div class="row align-items-center">
-                                <div class="col-md-8">
-                                    <div class="player-info">
-                                        <div id="current-program" class="text-white mb-1 small"></div>
-                                        <div id="next-program" class="text-white-50 small"></div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 text-end">
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-warning" onclick="reloadVideo()" title="Recarregar">
-                                            <i class="fas fa-redo"></i>
-                                        </button>
-                                        <button class="btn btn-outline-light" onclick="toggleFullscreen()" title="Fullscreen">
-                                            <i class="fas fa-expand" id="fullscreen-icon"></i>
-                                        </button>
-                                        <button class="btn btn-outline-danger" onclick="closePlayer()" title="Fechar">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                    </div>
-                                </div>
+                        <!-- EPG Info Overlay -->
+                        <div class="position-absolute bottom-0 start-0 w-100 bg-dark bg-opacity-75 p-3" style="z-index: 100;">
+                            <div class="player-info">
+                                <div id="current-program" class="text-white mb-1 small"></div>
+                                <div id="next-program" class="text-white-50 small"></div>
                             </div>
                         </div>
                     </div>

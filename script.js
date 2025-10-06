@@ -63,6 +63,8 @@ class IPTVPlayer {
             }
         });
 
+
+
         document.getElementById('xtream-form').addEventListener('submit', (e) => {
             e.preventDefault();
             this.connectXtream();
@@ -943,6 +945,7 @@ class IPTVPlayer {
     }
 
     closePlayer() {
+        console.log('IPTVPlayer.closePlayer() called');
         const modal = bootstrap.Modal.getInstance(document.getElementById('player-modal'));
         const video = document.getElementById('video-player');
         
@@ -969,6 +972,7 @@ class IPTVPlayer {
     }
 
     reloadVideo() {
+        console.log('IPTVPlayer.reloadVideo() called');
         if (this.currentItem) {
             // Pause current video
             const video = document.getElementById('video-player');
@@ -995,6 +999,7 @@ class IPTVPlayer {
     }
 
     toggleFullscreen() {
+        console.log('IPTVPlayer.toggleFullscreen() called');
         const video = document.getElementById('video-player');
         const modal = document.getElementById('player-modal');
         const icon = document.getElementById('fullscreen-icon');
@@ -1678,14 +1683,17 @@ function deleteFavorite(id) {
 
 // Player control functions
 function closePlayer() {
+    console.log('closePlayer function called');
     player.closePlayer();
 }
 
 function reloadVideo() {
+    console.log('reloadVideo function called');
     player.reloadVideo();
 }
 
 function toggleFullscreen() {
+    console.log('toggleFullscreen function called');
     player.toggleFullscreen();
 }
 
