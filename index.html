@@ -50,6 +50,19 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Seção de Listas Recentes -->
+                        <div class="mt-5" id="recent-connections-section">
+                            <div class="text-center mb-4">
+                                <h5 class="text-white">
+                                    <i class="fas fa-history me-2"></i>Conexões Recentes
+                                </h5>
+                                <p class="text-white-50 small">Clique para reconectar rapidamente</p>
+                            </div>
+                            <div id="recent-connections-list" class="row g-3">
+                                <!-- Lista será preenchida dinamicamente -->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -160,8 +173,9 @@
 
             <div class="container-fluid p-0">
                 <div class="row g-0">
-                    <div class="col-md-3 col-lg-2">
-                        <div class="nav nav-pills flex-column bg-dark bg-opacity-50 min-vh-100 p-3" id="v-pills-tab" role="tablist">
+                    <!-- Sidebar fixa -->
+                    <div class="col-md-3 col-lg-2 sidebar-fixed">
+                        <div class="nav nav-pills flex-column bg-dark bg-opacity-90 h-100 p-3" id="v-pills-tab" role="tablist">
                             <button class="nav-link active text-start mb-2" onclick="showSection('channels')" type="button">
                                 <i class="fas fa-tv me-2"></i>Canais
                             </button>
@@ -177,7 +191,8 @@
                         </div>
                     </div>
                     
-                    <div id="main-content-area" class="col-12">
+                    <!-- Content area com margin para compensar sidebar fixa -->
+                    <div id="main-content-area" class="col-md-9 col-lg-10 offset-md-3 offset-lg-2">
                         <div class="p-4">
                             <!-- Seção de Canais -->
                             <div id="channels-section" class="content-section active">

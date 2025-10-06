@@ -769,6 +769,34 @@ body {
     height: calc(100vh - 80px);
 }
 
+/* Recent Connections */
+.recent-connection-card {
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.recent-connection-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 193, 7, 0.5);
+    box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);
+}
+
+#recent-connections-section {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Sidebar fixa */
+@media (min-width: 768px) {
+    .sidebar-fixed {
+        position: fixed !important;
+        top: 56px;
+        height: calc(100vh - 56px);
+        overflow-y: auto;
+        z-index: 100;
+    }
+}
+
 /* Mobile optimizations */
 @media (max-width: 768px) {
     .modal-fullscreen .player-container {
@@ -783,5 +811,15 @@ body {
     #player-controls-overlay .btn-group .btn {
         margin-bottom: 5px;
         font-size: 0.8rem;
+    }
+    
+    .sidebar-fixed {
+        position: relative !important;
+        top: auto !important;
+        height: auto !important;
+    }
+    
+    #main-content-area {
+        margin-left: 0 !important;
     }
 }

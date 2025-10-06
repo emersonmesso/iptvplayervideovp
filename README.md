@@ -1,6 +1,10 @@
 # IPTV Player Web
 
-Um reprodutor de IPTV completo baseado em navegador com suporte para listas M3U e servidores Xtream Codes.
+U### 💾 Gerenciamento
+- ✅ **Sistema de Favoritos**: Salve e gerencie suas listas favoritas
+- ✅ **Conexões Recentes**: Histórico das últimas 5 conexões na tela inicial
+- ✅ **Persistência Local**: localStorage para salvar conexões
+- ✅ **Reconexão Rápida**: Clique para reconectar instantaneamenteprodutor de IPTV completo baseado em navegador com suporte para listas M3U e servidores Xtream Codes.
 
 ## ✨ Funcionalidades
 
@@ -24,6 +28,7 @@ Um reprodutor de IPTV completo baseado em navegador com suporte para listas M3U 
 - ✅ **Histórico**: Acesso rápido às listas utilizadas
 
 ### 📱 Experiência do Usuário
+- ✅ **Sidebar Fixa**: Navegação sempre visível nas categorias
 - ✅ **Carregamento Dinâmico**: APIs carregadas sob demanda
 - ✅ **Busca e Filtros**: Navegação intuitiva por categorias
 - ✅ **Indicadores Visuais**: Status de conexão e carregamento
@@ -41,23 +46,30 @@ Um reprodutor de IPTV completo baseado em navegador com suporte para listas M3U 
 
 ### Primeira Conexão
 1. Abra o arquivo `index.html` em um navegador moderno
-2. Escolha entre **M3U** ou **Xtream Codes**
-3. Configure sua conexão:
+2. Na tela inicial, veja suas **Conexões Recentes** (se houver)
+3. Para nova conexão, escolha entre **M3U** ou **Xtream Codes**
+4. Configure sua conexão:
    - **M3U**: Cole a URL da lista ou faça upload do arquivo
    - **Xtream**: Insira servidor, usuário e senha
 
 ### Navegação
-4. Explore as categorias disponíveis
-5. Clique em qualquer conteúdo para reproduzir em player fullscreen
-6. Use os controles do player:
+5. Use a **sidebar fixa** para navegar entre categorias
+6. Explore as categorias disponíveis no conteúdo principal
+7. Clique em qualquer conteúdo para reproduzir em player fullscreen
+8. Use os controles do player:
    - **🔄 Recarregar**: Reinicia o vídeo atual
    - **⛶ Fullscreen**: Alterna modo tela cheia
    - **✕ Fechar**: Fecha o player
 
 ### Sistema de Favoritos
-6. Clique em **"💖 Favoritos"** no menu superior
-7. Salve sua conexão atual com **"Salvar Lista Atual"**
-8. Acesse rapidamente suas listas salvas
+9. Clique em **"💖 Favoritos"** no menu superior
+10. Salve sua conexão atual com **"Salvar Lista Atual"**
+11. Acesse rapidamente suas listas salvas
+
+### Conexões Recentes
+- Na tela inicial, veja suas últimas 5 conexões
+- Clique em qualquer conexão para reconectar instantaneamente
+- Histórico salvo automaticamente a cada nova conexão
 
 ## � Estrutura de Arquivos
 

@@ -22,6 +22,9 @@ class IPTVPlayer {
         // Favorites system
         this.favorites = [];
         
+        // Recent connections
+        this.recentConnections = [];
+        
         this.init();
     }
 
@@ -29,6 +32,7 @@ class IPTVPlayer {
         this.setupEventListeners();
         this.loadStoredConnection();
         this.loadFavorites();
+        this.loadRecentConnections();
         
         // Ensure only connection-selector is shown initially
         this.showScreen('connection-selector');
@@ -144,6 +148,7 @@ class IPTVPlayer {
             }
 
             this.saveConnection();
+            this.saveRecentConnection(this.connectionData, 'm3u');
             this.showScreen('main-screen');
             this.displayContent();
 
@@ -185,6 +190,7 @@ class IPTVPlayer {
                 // Load only categories, not all content
                 await this.loadXtreamCategories();
                 this.saveConnection();
+                this.saveRecentConnection(this.connectionData, 'xtream');
                 this.showScreen('main-screen');
                 
                 // Initialize with empty content - will load on demand
@@ -759,8 +765,8 @@ class IPTVPlayer {
             
             if (type === 'serie') {
                 this.showSerieEpisodes(item);
-            } else if (type !== 'channel') {
-                // For non-channels (movies), use full player
+            } else {
+                // For all other types (channels, movies), use player
                 this.playContent(item);
             }
         });
@@ -1252,6 +1258,162 @@ class IPTVPlayer {
                 console.error('Error loading favorites:', error);
                 this.favorites = [];
             }
+        }
+    }
+
+    loadRecentConnections() {
+        const stored = localStorage.getItem('iptv-recent-connections');
+        if (stored) {
+            try {
+                this.recentConnections = JSON.parse(stored);
+            } catch (error) {
+                console.error('Error loading recent connections:', error);
+                this.recentConnections = [];
+            }
+        }
+        this.displayRecentConnections();
+    }
+
+    saveRecentConnection(connectionData, connectionType) {
+        const recentConnection = {
+            id: Date.now(),
+            type: connectionType,
+            data: connectionData,
+            name: this.generateConnectionName(connectionData, connectionType),
+            lastUsed: new Date().toISOString()
+        };
+
+        // Remove existing connection if it exists
+        this.recentConnections = this.recentConnections.filter(conn => 
+            !(conn.type === connectionType && this.isSameConnection(conn.data, connectionData))
+        );
+
+        // Add to beginning of array
+        this.recentConnections.unshift(recentConnection);
+
+        // Keep only last 5 connections
+        this.recentConnections = this.recentConnections.slice(0, 5);
+
+        localStorage.setItem('iptv-recent-connections', JSON.stringify(this.recentConnections));
+        this.displayRecentConnections();
+    }
+
+    generateConnectionName(data, type) {
+        if (type === 'xtream') {
+            return `${data.url.split('://')[1]?.split('/')[0] || 'Servidor'} - ${data.username}`;
+        } else {
+            const url = new URL(data.url || data.content);
+            return `M3U - ${url.hostname}`;
+        }
+    }
+
+    isSameConnection(data1, data2) {
+        if (data1.type !== data2.type) return false;
+        
+        if (data1.type === 'xtream') {
+            return data1.url === data2.url && data1.username === data2.username;
+        } else {
+            return data1.url === data2.url;
+        }
+    }
+
+    displayRecentConnections() {
+        const container = document.getElementById('recent-connections-list');
+        const section = document.getElementById('recent-connections-section');
+        
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        if (this.recentConnections.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+
+        section.style.display = 'block';
+
+        this.recentConnections.forEach(connection => {
+            const div = document.createElement('div');
+            div.className = 'col-md-6 col-lg-4';
+            
+            const typeIcon = connection.type === 'm3u' ? 'fas fa-list' : 'fas fa-server';
+            const typeColor = connection.type === 'm3u' ? 'primary' : 'success';
+            
+            div.innerHTML = `
+                <div class="card bg-dark bg-opacity-75 text-white h-100 border-secondary recent-connection-card" style="cursor: pointer;">
+                    <div class="card-body p-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="${typeIcon} text-${typeColor} me-2"></i>
+                            <h6 class="card-title mb-0 text-truncate">${connection.name}</h6>
+                        </div>
+                        <p class="card-text small text-white-50 mb-0">
+                            <i class="fas fa-clock me-1"></i>
+                            ${new Date(connection.lastUsed).toLocaleDateString()} às ${new Date(connection.lastUsed).toLocaleTimeString()}
+                        </p>
+                    </div>
+                </div>
+            `;
+            
+            div.querySelector('.recent-connection-card').addEventListener('click', () => {
+                this.connectFromRecent(connection);
+            });
+            
+            container.appendChild(div);
+        });
+    }
+
+    async connectFromRecent(connection) {
+        this.showLoading(true);
+        
+        try {
+            this.connectionType = connection.type;
+            this.connectionData = connection.data;
+
+            if (connection.type === 'xtream') {
+                await this.loadXtreamCategories();
+                this.displayInitialContent();
+            } else {
+                if (connection.data.content) {
+                    this.parseM3U(connection.data.content);
+                } else {
+                    // If we don't have content cached, fetch it again
+                    const response = await this.fetchWithCORS(connection.data.url);
+                    const content = await response.text();
+                    this.parseM3U(content);
+                    connection.data.content = content; // Cache it
+                }
+                
+                if (connection.data.epgUrl) {
+                    await this.loadEPGFromURL(connection.data.epgUrl);
+                }
+                this.displayContent();
+            }
+
+            this.showScreen('main-screen');
+            this.saveRecentConnection(connection.data, connection.type);
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Conectado!',
+                text: `Reconectado a ${connection.name}`,
+                timer: 2000,
+                background: '#1e3c72',
+                color: '#ffffff',
+                confirmButtonColor: '#ffd700'
+            });
+
+        } catch (error) {
+            console.error('Error connecting from recent:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro na Conexão',
+                text: 'Não foi possível reconectar. Tente novamente.',
+                background: '#1e3c72',
+                color: '#ffffff',
+                confirmButtonColor: '#ffd700'
+            });
+        } finally {
+            this.showLoading(false);
         }
     }
 
