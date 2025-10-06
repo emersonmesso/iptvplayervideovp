@@ -322,38 +322,31 @@
 
         <!-- Player Modal -->
         <div class="modal fade" id="player-modal" tabindex="-1" aria-labelledby="playerModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-fullscreen">
+            <div class="modal-dialog modal-xl">
                 <div class="modal-content bg-dark">
-                    <div class="modal-header border-secondary py-2">
+                    <div class="modal-header border-secondary d-flex justify-content-between align-items-center">
                         <h6 class="modal-title text-white mb-0" id="player-title">
                             <i class="fas fa-tv me-2"></i>Player
                         </h6>
-                        <div class="d-flex align-items-center">
-                            <!-- Test button -->
-                            <button type="button" class="btn btn-success me-2" onclick="alert('Teste OK!')" style="z-index: 1003; position: relative;">
-                                TEST
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-warning" onclick="player.reloadVideo()" title="Recarregar Vídeo">
+                                <i class="fas fa-redo"></i>
                             </button>
-                            <button type="button" id="reload-btn-header" class="btn btn-warning me-2" data-action="reload" onclick="player.reloadVideo()" title="Recarregar Vídeo" style="z-index: 1003; position: relative;">
-                                <i class="fas fa-redo"></i> Recarregar
+                            <button type="button" class="btn btn-sm btn-outline-light" onclick="player.toggleFullscreen()" title="Tela Cheia">
+                                <i class="fas fa-expand" id="fullscreen-icon"></i>
                             </button>
-                            <button type="button" id="fullscreen-btn-header" class="btn btn-light me-2" data-action="fullscreen" onclick="player.toggleFullscreen()" title="Tela Cheia" style="z-index: 1003; position: relative;">
-                                <i class="fas fa-expand" id="fullscreen-icon"></i> Tela Cheia
-                            </button>
-                            <button type="button" id="close-btn-header" class="btn btn-danger" data-action="close" onclick="player.closePlayer()" title="Fechar Player" style="z-index: 1003; position: relative;">
-                                <i class="fas fa-times"></i> Fechar
-                            </button>
+                            <button type="button" class="btn-close btn-close-white" onclick="player.closePlayer()" aria-label="Close" title="Fechar Player"></button>
                         </div>
                     </div>
-                    <div class="modal-body p-0 position-relative" style="overflow: visible;">
-                        <div class="player-container">
-                            <video id="video-player" class="w-100 h-100" controls playsinline></video>
+                    <div class="modal-body p-0">
+                        <div class="player-container" style="height: 70vh;">
+                            <video id="video-player" class="w-100 h-100" controls playsinline style="background: #000;"></video>
                         </div>
-                        <!-- EPG Info Overlay -->
-                        <div class="position-absolute bottom-0 start-0 w-100 bg-dark bg-opacity-75 p-3" style="z-index: 100;">
-                            <div class="player-info">
-                                <div id="current-program" class="text-white mb-1 small"></div>
-                                <div id="next-program" class="text-white-50 small"></div>
-                            </div>
+                    </div>
+                    <div class="modal-footer border-secondary bg-dark">
+                        <div class="player-info w-100">
+                            <div id="current-program" class="text-white mb-1"></div>
+                            <div id="next-program" class="text-white-50"></div>
                         </div>
                     </div>
                 </div>

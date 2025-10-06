@@ -63,28 +63,7 @@ class IPTVPlayer {
             }
         });
 
-        // Global click event delegation for player buttons
-        document.addEventListener('click', (e) => {
-            const button = e.target.closest('[data-action]');
-            if (button) {
-                e.preventDefault();
-                e.stopPropagation();
-                const action = button.getAttribute('data-action');
-                console.log(`Button clicked: ${action}`);
-                
-                switch (action) {
-                    case 'reload':
-                        this.reloadVideo();
-                        break;
-                    case 'fullscreen':
-                        this.toggleFullscreen();
-                        break;
-                    case 'close':
-                        this.closePlayer();
-                        break;
-                }
-            }
-        });
+
 
 
 
@@ -943,54 +922,6 @@ class IPTVPlayer {
 
         // Update EPG info if available
         this.updatePlayerEPG(item);
-        
-        // Setup button event listeners
-        this.setupPlayerButtons();
-    }
-
-    setupPlayerButtons() {
-        // Wait for modal to be fully rendered
-        setTimeout(() => {
-            const reloadBtn = document.getElementById('reload-btn-header');
-            const fullscreenBtn = document.getElementById('fullscreen-btn-header');
-            const closeBtn = document.getElementById('close-btn-header');
-
-            if (reloadBtn) {
-                // Remove existing listeners
-                reloadBtn.replaceWith(reloadBtn.cloneNode(true));
-                const newReloadBtn = document.getElementById('reload-btn-header');
-                newReloadBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Reload button clicked');
-                    this.reloadVideo();
-                });
-            }
-
-            if (fullscreenBtn) {
-                // Remove existing listeners
-                fullscreenBtn.replaceWith(fullscreenBtn.cloneNode(true));
-                const newFullscreenBtn = document.getElementById('fullscreen-btn-header');
-                newFullscreenBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Fullscreen button clicked');
-                    this.toggleFullscreen();
-                });
-            }
-
-            if (closeBtn) {
-                // Remove existing listeners
-                closeBtn.replaceWith(closeBtn.cloneNode(true));
-                const newCloseBtn = document.getElementById('close-btn-header');
-                newCloseBtn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Close button clicked');
-                    this.closePlayer();
-                });
-            }
-        }, 200);
     }
 
     handlePlayerError(item) {
@@ -1091,17 +1022,16 @@ class IPTVPlayer {
 
     toggleFullscreen() {
         const video = document.getElementById('video-player');
-        const modal = document.getElementById('player-modal');
         const icon = document.getElementById('fullscreen-icon');
         
         if (!document.fullscreenElement) {
-            // Enter fullscreen
-            if (modal.requestFullscreen) {
-                modal.requestFullscreen();
-            } else if (modal.webkitRequestFullscreen) {
-                modal.webkitRequestFullscreen();
-            } else if (modal.msRequestFullscreen) {
-                modal.msRequestFullscreen();
+            // Enter fullscreen on video element
+            if (video.requestFullscreen) {
+                video.requestFullscreen();
+            } else if (video.webkitRequestFullscreen) {
+                video.webkitRequestFullscreen();
+            } else if (video.msRequestFullscreen) {
+                video.msRequestFullscreen();
             }
             
             if (icon) {
