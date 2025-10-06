@@ -881,8 +881,35 @@ class IPTVPlayer {
                 console.log('Sidebar hidden');
             }
             
+            // Force full opacity on modal and video
+            const modal = document.getElementById('player-modal');
+            const modalContent = modal.querySelector('.modal-content');
+            const modalBody = modal.querySelector('.modal-body');
+            const playerContainer = modal.querySelector('.player-container');
+            const videoElement = document.getElementById('video-player');
+            
+            if (modal) modal.style.opacity = '1';
+            if (modalContent) modalContent.style.opacity = '1';
+            if (modalBody) modalBody.style.opacity = '1';
+            if (playerContainer) playerContainer.style.opacity = '1';
+            if (videoElement) {
+                videoElement.style.opacity = '1';
+                videoElement.style.filter = 'none';
+                console.log('Video opacity forced to 1');
+            }
+            
             // Force focus on modal to ensure it's on top
             document.getElementById('player-modal').focus();
+            
+            // Remove any modal backdrop that might be causing opacity issues
+            setTimeout(() => {
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.style.opacity = '0.5';
+                    backdrop.style.zIndex = '99997';
+                    console.log('Modal backdrop opacity adjusted');
+                }
+            }, 100);
             
             // Remove any remaining overlays
             document.querySelectorAll('[style*="z-index"]').forEach(el => {
@@ -894,21 +921,31 @@ class IPTVPlayer {
             });
             
             // Debug: Check for elements that might be blocking
-            const video = document.getElementById('video-player');
-            if (video) {
-                console.log('Video element found:', video);
-                console.log('Video computed style:', window.getComputedStyle(video));
+            const videoEl = document.getElementById('video-player');
+            if (videoEl) {
+                console.log('Video element found:', videoEl);
+                const computedStyle = window.getComputedStyle(videoEl);
+                console.log('Video opacity:', computedStyle.opacity);
+                console.log('Video filter:', computedStyle.filter);
+                console.log('Video z-index:', computedStyle.zIndex);
                 
                 // Force enable pointer events on video and container
-                video.style.pointerEvents = 'auto';
-                video.parentElement.style.pointerEvents = 'auto';
+                videoEl.style.pointerEvents = 'auto';
+                videoEl.parentElement.style.pointerEvents = 'auto';
                 
                 // Check for elements on top of video
-                const rect = video.getBoundingClientRect();
+                const rect = videoEl.getBoundingClientRect();
                 const centerX = rect.left + rect.width / 2;
                 const centerY = rect.top + rect.height / 2;
                 const elementAtCenter = document.elementFromPoint(centerX, centerY);
                 console.log('Element at video center:', elementAtCenter);
+                
+                // Check for modal backdrop interference
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    console.log('Modal backdrop found:', backdrop);
+                    console.log('Backdrop z-index:', window.getComputedStyle(backdrop).zIndex);
+                }
             }
         }, { once: true });
         

@@ -737,6 +737,15 @@ video {
     left: 0 !important;
     width: 100% !important;
     height: 100% !important;
+    opacity: 1 !important;
+}
+
+#player-modal.show {
+    opacity: 1 !important;
+}
+
+#player-modal .modal-backdrop {
+    z-index: 99998 !important;
 }
 
 #player-modal .modal-backdrop {
@@ -766,15 +775,29 @@ video {
     object-fit: contain;
     pointer-events: auto !important;
     z-index: 10 !important;
+    opacity: 1 !important;
+    background: #000 !important;
 }
 
-/* Ensure modal content is interactive */
+/* Ensure modal content is interactive and fully visible */
 #player-modal .modal-content {
     pointer-events: auto !important;
+    opacity: 1 !important;
+    background: #212529 !important;
 }
 
 #player-modal .modal-body {
     pointer-events: auto !important;
+    opacity: 1 !important;
+}
+
+#player-modal .modal-header {
+    opacity: 1 !important;
+    background: #212529 !important;
+}
+
+.player-container {
+    opacity: 1 !important;
 }
 
 /* Modal header buttons */
@@ -885,6 +908,22 @@ body.modal-open .sidebar {
 /* Ensure player modal is always on top */
 .modal-backdrop.show {
     z-index: 99998 !important;
+}
+
+/* Override any Bootstrap modal styles that might cause opacity issues */
+#player-modal.modal.show {
+    opacity: 1 !important;
+    display: block !important;
+}
+
+#player-modal .modal-dialog {
+    opacity: 1 !important;
+}
+
+/* Remove any filters or transforms that might affect video visibility */
+#player-modal * {
+    filter: none !important;
+    transform: none !important;
 }
 
 #content-loading-overlay .spinner-border {
