@@ -152,7 +152,7 @@
 
         <!-- Tela Principal -->
         <div id="main-screen" class="screen">
-            <nav class="navbar navbar-expand-lg navbar-dark bg-dark bg-opacity-90">
+            <nav class="navbar navbar-expand-lg navbar-dark bg-dark bg-opacity-90 fixed-top">
                 <div class="container-fluid">
                     <a class="navbar-brand fw-bold" href="#">
                         <i class="fas fa-tv me-2"></i>IPTV Player VP
@@ -171,7 +171,7 @@
                 </div>
             </nav>
 
-            <div class="container-fluid p-0">
+            <div class="container-fluid p-0" style="margin-top: 56px;">
                 <div class="row g-0">
                     <!-- Sidebar fixa -->
                     <div class="col-md-3 col-lg-2 sidebar-fixed">
@@ -329,17 +329,18 @@
                             <i class="fas fa-tv me-2"></i>Player
                         </h6>
                         <div class="d-flex align-items-center">
-                            <button type="button" class="btn btn-sm btn-warning me-2" onclick="alert('Teste botão funcionando!')" title="Teste">
+                            <!-- Test button -->
+                            <button type="button" class="btn btn-success me-2" onclick="alert('Teste OK!')" style="z-index: 1003; position: relative;">
                                 TEST
                             </button>
-                            <button type="button" id="reload-btn-header" class="btn btn-sm btn-outline-warning me-2" onclick="reloadVideo()" title="Recarregar Vídeo">
-                                <i class="fas fa-redo"></i>
+                            <button type="button" id="reload-btn-header" class="btn btn-warning me-2" data-action="reload" onclick="player.reloadVideo()" title="Recarregar Vídeo" style="z-index: 1003; position: relative;">
+                                <i class="fas fa-redo"></i> Recarregar
                             </button>
-                            <button type="button" id="fullscreen-btn-header" class="btn btn-sm btn-outline-light me-2" onclick="toggleFullscreen()" title="Tela Cheia">
-                                <i class="fas fa-expand" id="fullscreen-icon"></i>
+                            <button type="button" id="fullscreen-btn-header" class="btn btn-light me-2" data-action="fullscreen" onclick="player.toggleFullscreen()" title="Tela Cheia" style="z-index: 1003; position: relative;">
+                                <i class="fas fa-expand" id="fullscreen-icon"></i> Tela Cheia
                             </button>
-                            <button type="button" id="close-btn-header" class="btn btn-sm btn-outline-danger" onclick="closePlayer()" title="Fechar Player">
-                                <i class="fas fa-times"></i>
+                            <button type="button" id="close-btn-header" class="btn btn-danger" data-action="close" onclick="player.closePlayer()" title="Fechar Player" style="z-index: 1003; position: relative;">
+                                <i class="fas fa-times"></i> Fechar
                             </button>
                         </div>
                     </div>
@@ -366,8 +367,20 @@
                 <div class="spinner-border text-warning mb-3" style="width: 3rem; height: 3rem;" role="status">
                     <span class="visually-hidden">Carregando...</span>
                 </div>
-                <h4>Carregando...</h4>
-                <p class="text-white-50">Conectando ao servidor...</p>
+                <h4 id="loading-title">Carregando...</h4>
+                <p class="text-white-50" id="loading-message">Conectando ao servidor...</p>
+            </div>
+        </div>
+
+        <!-- Content Loading Overlay -->
+        <div id="content-loading-overlay" class="position-fixed d-none justify-content-center align-items-center" 
+             style="top: 56px; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 500;">
+            <div class="text-center text-white">
+                <div class="spinner-border text-warning mb-3" style="width: 2rem; height: 2rem;" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                </div>
+                <h6 id="content-loading-title">Carregando conteúdo...</h6>
+                <p class="text-white-50 small" id="content-loading-message">Aguarde...</p>
             </div>
         </div>
     </div>

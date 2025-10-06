@@ -63,6 +63,29 @@ class IPTVPlayer {
             }
         });
 
+        // Global click event delegation for player buttons
+        document.addEventListener('click', (e) => {
+            const button = e.target.closest('[data-action]');
+            if (button) {
+                e.preventDefault();
+                e.stopPropagation();
+                const action = button.getAttribute('data-action');
+                console.log(`Button clicked: ${action}`);
+                
+                switch (action) {
+                    case 'reload':
+                        this.reloadVideo();
+                        break;
+                    case 'fullscreen':
+                        this.toggleFullscreen();
+                        break;
+                    case 'close':
+                        this.closePlayer();
+                        break;
+                }
+            }
+        });
+
 
 
         document.getElementById('xtream-form').addEventListener('submit', (e) => {
@@ -608,18 +631,40 @@ class IPTVPlayer {
     }
 
     async selectCategory(category, type) {
-        if (type === 'channel') {
-            this.currentChannelCategory = category;
-            await this.loadChannelsByCategory(category.category_id);
-            this.showChannelsList();
-        } else if (type === 'movie') {
-            this.currentMovieCategory = category;
-            await this.loadMoviesByCategory(category.category_id);
-            this.showMoviesList();
-        } else if (type === 'series') {
-            this.currentSeriesCategory = category;
-            await this.loadSeriesByCategory(category.category_id);
-            this.showSeriesList();
+        const typeNames = {
+            'channel': 'Canais',
+            'movie': 'Filmes',
+            'series': 'Séries'
+        };
+        
+        this.showContentLoading(true, `Carregando ${typeNames[type]}...`, `Categoria: ${category.category_name}`);
+        
+        try {
+            if (type === 'channel') {
+                this.currentChannelCategory = category;
+                await this.loadChannelsByCategory(category.category_id);
+                this.showChannelsList();
+            } else if (type === 'movie') {
+                this.currentMovieCategory = category;
+                await this.loadMoviesByCategory(category.category_id);
+                this.showMoviesList();
+            } else if (type === 'series') {
+                this.currentSeriesCategory = category;
+                await this.loadSeriesByCategory(category.category_id);
+                this.showSeriesList();
+            }
+        } catch (error) {
+            console.error(`Error loading category ${category.category_name}:`, error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro ao Carregar Categoria',
+                text: `Erro ao carregar ${category.category_name}. Tente novamente.`,
+                background: '#1e3c72',
+                color: '#ffffff',
+                confirmButtonColor: '#ffd700'
+            });
+        } finally {
+            this.showContentLoading(false);
         }
     }
 
@@ -898,6 +943,54 @@ class IPTVPlayer {
 
         // Update EPG info if available
         this.updatePlayerEPG(item);
+        
+        // Setup button event listeners
+        this.setupPlayerButtons();
+    }
+
+    setupPlayerButtons() {
+        // Wait for modal to be fully rendered
+        setTimeout(() => {
+            const reloadBtn = document.getElementById('reload-btn-header');
+            const fullscreenBtn = document.getElementById('fullscreen-btn-header');
+            const closeBtn = document.getElementById('close-btn-header');
+
+            if (reloadBtn) {
+                // Remove existing listeners
+                reloadBtn.replaceWith(reloadBtn.cloneNode(true));
+                const newReloadBtn = document.getElementById('reload-btn-header');
+                newReloadBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Reload button clicked');
+                    this.reloadVideo();
+                });
+            }
+
+            if (fullscreenBtn) {
+                // Remove existing listeners
+                fullscreenBtn.replaceWith(fullscreenBtn.cloneNode(true));
+                const newFullscreenBtn = document.getElementById('fullscreen-btn-header');
+                newFullscreenBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Fullscreen button clicked');
+                    this.toggleFullscreen();
+                });
+            }
+
+            if (closeBtn) {
+                // Remove existing listeners
+                closeBtn.replaceWith(closeBtn.cloneNode(true));
+                const newCloseBtn = document.getElementById('close-btn-header');
+                newCloseBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Close button clicked');
+                    this.closePlayer();
+                });
+            }
+        }, 200);
     }
 
     handlePlayerError(item) {
@@ -945,7 +1038,6 @@ class IPTVPlayer {
     }
 
     closePlayer() {
-        console.log('IPTVPlayer.closePlayer() called');
         const modal = bootstrap.Modal.getInstance(document.getElementById('player-modal'));
         const video = document.getElementById('video-player');
         
@@ -972,7 +1064,6 @@ class IPTVPlayer {
     }
 
     reloadVideo() {
-        console.log('IPTVPlayer.reloadVideo() called');
         if (this.currentItem) {
             // Pause current video
             const video = document.getElementById('video-player');
@@ -999,7 +1090,6 @@ class IPTVPlayer {
     }
 
     toggleFullscreen() {
-        console.log('IPTVPlayer.toggleFullscreen() called');
         const video = document.getElementById('video-player');
         const modal = document.getElementById('player-modal');
         const icon = document.getElementById('fullscreen-icon');
@@ -1040,6 +1130,16 @@ class IPTVPlayer {
         });
         event.target.classList.add('active');
 
+        // Show content loading
+        const sectionNames = {
+            'channels': 'Canais',
+            'movies': 'Filmes', 
+            'series': 'Séries',
+            'epg': 'Guia TV'
+        };
+        
+        this.showContentLoading(true, `Carregando ${sectionNames[section]}...`, 'Preparando conteúdo...');
+
         // Update content sections
         document.querySelectorAll('.content-section').forEach(sec => {
             sec.classList.remove('active');
@@ -1051,21 +1151,37 @@ class IPTVPlayer {
 
         this.currentSection = section;
 
-        // Load content on demand
-        switch (section) {
-            case 'channels':
-                await this.displayChannels();
-                break;
-            case 'movies':
-                await this.displayMovies();
-                break;
-            case 'series':
-                await this.displaySeries();
-                break;
-            case 'epg':
-                this.loadEPG();
-                break;
+        try {
+            // Load content on demand
+            switch (section) {
+                case 'channels':
+                    await this.displayChannels();
+                    break;
+                case 'movies':
+                    await this.displayMovies();
+                    break;
+                case 'series':
+                    await this.displaySeries();
+                    break;
+                case 'epg':
+                    this.loadEPG();
+                    break;
+            }
+        } catch (error) {
+            console.error(`Error loading ${section}:`, error);
+            this.showContentLoading(false);
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro ao Carregar',
+                text: `Erro ao carregar ${sectionNames[section]}. Tente novamente.`,
+                background: '#1e3c72',
+                color: '#ffffff',
+                confirmButtonColor: '#ffd700'
+            });
+            return;
         }
+
+        this.showContentLoading(false);
     }
 
     loadEPG() {
@@ -1156,12 +1272,53 @@ class IPTVPlayer {
         });
     }
 
-    refreshContent() {
-        this.showLoading(true);
-        setTimeout(() => {
-            this.loadContent();
-            this.showLoading(false);
-        }, 1000);
+    async refreshContent() {
+        this.showContentLoading(true, 'Atualizando Conteúdo...', 'Recarregando dados do servidor...');
+        
+        try {
+            // Reload content based on connection type
+            if (this.connectionType === 'xtream') {
+                await this.loadXtreamCategories();
+                this.displayInitialContent();
+            } else if (this.connectionType === 'm3u') {
+                if (this.connectionData.url) {
+                    const response = await this.fetchWithCORS(this.connectionData.url);
+                    const content = await response.text();
+                    this.parseM3U(content);
+                    this.connectionData.content = content;
+                }
+                if (this.connectionData.epgUrl) {
+                    await this.loadEPGFromURL(this.connectionData.epgUrl);
+                }
+                this.displayContent();
+            }
+            
+            // Refresh current section
+            await this.showSection(this.currentSection);
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Conteúdo Atualizado!',
+                text: 'O conteúdo foi atualizado com sucesso.',
+                timer: 2000,
+                background: '#1e3c72',
+                color: '#ffffff',
+                confirmButtonColor: '#ffd700'
+            });
+            
+        } catch (error) {
+            console.error('Error refreshing content:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro na Atualização',
+                text: 'Erro ao atualizar o conteúdo. Verifique sua conexão.',
+                background: '#1e3c72',
+                color: '#ffffff',
+                confirmButtonColor: '#ffd700'
+            });
+        } finally {
+            this.showContentLoading(false);
+        }
     }
 
     async disconnect() {
@@ -1242,8 +1399,31 @@ class IPTVPlayer {
         });
     }
 
-    showLoading(show) {
+    showLoading(show, title = 'Carregando...', message = 'Conectando ao servidor...') {
         const overlay = document.getElementById('loading-overlay');
+        const titleEl = document.getElementById('loading-title');
+        const messageEl = document.getElementById('loading-message');
+        
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) messageEl.textContent = message;
+        
+        if (show) {
+            overlay.classList.remove('d-none');
+            overlay.classList.add('d-flex');
+        } else {
+            overlay.classList.remove('d-flex');
+            overlay.classList.add('d-none');
+        }
+    }
+
+    showContentLoading(show, title = 'Carregando conteúdo...', message = 'Aguarde...') {
+        const overlay = document.getElementById('content-loading-overlay');
+        const titleEl = document.getElementById('content-loading-title');
+        const messageEl = document.getElementById('content-loading-message');
+        
+        if (titleEl) titleEl.textContent = title;
+        if (messageEl) messageEl.textContent = message;
+        
         if (show) {
             overlay.classList.remove('d-none');
             overlay.classList.add('d-flex');
@@ -1661,15 +1841,27 @@ function loadEPG() {
 }
 
 function showChannelCategories() {
-    player.showChannelCategories();
+    player.showContentLoading(true, 'Voltando às Categorias...', 'Carregando categorias de canais...');
+    setTimeout(() => {
+        player.showChannelCategories();
+        player.showContentLoading(false);
+    }, 300);
 }
 
 function showMovieCategories() {
-    player.showMovieCategories();
+    player.showContentLoading(true, 'Voltando às Categorias...', 'Carregando categorias de filmes...');
+    setTimeout(() => {
+        player.showMovieCategories();
+        player.showContentLoading(false);
+    }, 300);
 }
 
 function showSeriesCategories() {
-    player.showSeriesCategories();
+    player.showContentLoading(true, 'Voltando às Categorias...', 'Carregando categorias de séries...');
+    setTimeout(() => {
+        player.showSeriesCategories();
+        player.showContentLoading(false);
+    }, 300);
 }
 
 // Global functions for favorites
@@ -1683,17 +1875,14 @@ function deleteFavorite(id) {
 
 // Player control functions
 function closePlayer() {
-    console.log('closePlayer function called');
     player.closePlayer();
 }
 
 function reloadVideo() {
-    console.log('reloadVideo function called');
     player.reloadVideo();
 }
 
 function toggleFullscreen() {
-    console.log('toggleFullscreen function called');
     player.toggleFullscreen();
 }
 
