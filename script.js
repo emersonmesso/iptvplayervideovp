@@ -838,8 +838,8 @@ class IPTVPlayer {
 
     playContent(item) {
         // Remove any overlays that might be blocking the modal
-        this.hideLoading();
-        this.hideContentLoading();
+        this.showLoading(false);
+        this.showContentLoading(false);
         
         const modal = new bootstrap.Modal(document.getElementById('player-modal'));
         const video = document.getElementById('video-player');
@@ -1940,6 +1940,12 @@ function toggleFullscreen() {
 
 // Initialize the application
 const player = new IPTVPlayer();
+
+// Add error handling for debugging
+window.addEventListener('error', (e) => {
+    console.error('JavaScript Error:', e.error);
+    console.error('Stack:', e.error?.stack);
+});
 
 // Force remove overlays when any modal is shown
 document.addEventListener('DOMContentLoaded', function() {
