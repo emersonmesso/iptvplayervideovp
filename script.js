@@ -837,6 +837,10 @@ class IPTVPlayer {
     }
 
     playContent(item) {
+        // Remove any overlays that might be blocking the modal
+        this.hideLoading();
+        this.hideContentLoading();
+        
         const modal = new bootstrap.Modal(document.getElementById('player-modal'));
         const video = document.getElementById('video-player');
         const title = document.getElementById('player-title');
@@ -845,7 +849,83 @@ class IPTVPlayer {
         this.currentItem = item;
         
         title.innerHTML = `<i class="fas fa-tv me-2"></i>${item.name}`;
+        
+        // Force remove any overlay elements
+        document.querySelectorAll('.loading-overlay').forEach(el => {
+            el.classList.remove('active');
+            el.style.display = 'none';
+        });
+        
+        // Close any active SweetAlert
+        if (window.Swal && Swal.isVisible()) {
+            Swal.close();
+        }
+        
+        // Ensure modal backdrop is clickable
         modal.show();
+        
+        // Add event listener to ensure modal is properly focused
+        document.getElementById('player-modal').addEventListener('shown.bs.modal', () => {
+            console.log('Player modal shown');
+            
+            // Hide navbar and sidebar completely
+            const navbar = document.querySelector('.navbar');
+            if (navbar) {
+                navbar.style.display = 'none';
+                console.log('Navbar hidden');
+            }
+            
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar) {
+                sidebar.style.display = 'none';
+                console.log('Sidebar hidden');
+            }
+            
+            // Force focus on modal to ensure it's on top
+            document.getElementById('player-modal').focus();
+            
+            // Remove any remaining overlays
+            document.querySelectorAll('[style*="z-index"]').forEach(el => {
+                const zIndex = parseInt(el.style.zIndex);
+                if (zIndex > 2000 && zIndex < 99999 && el.id !== 'player-modal') {
+                    console.log('Hiding overlay element:', el);
+                    el.style.display = 'none';
+                }
+            });
+            
+            // Debug: Check for elements that might be blocking
+            const video = document.getElementById('video-player');
+            if (video) {
+                console.log('Video element found:', video);
+                console.log('Video computed style:', window.getComputedStyle(video));
+                
+                // Force enable pointer events on video and container
+                video.style.pointerEvents = 'auto';
+                video.parentElement.style.pointerEvents = 'auto';
+                
+                // Check for elements on top of video
+                const rect = video.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                const elementAtCenter = document.elementFromPoint(centerX, centerY);
+                console.log('Element at video center:', elementAtCenter);
+            }
+        }, { once: true });
+        
+        // Show navbar and sidebar when modal is hidden
+        document.getElementById('player-modal').addEventListener('hidden.bs.modal', () => {
+            const navbar = document.querySelector('.navbar');
+            if (navbar) {
+                navbar.style.display = '';
+                console.log('Navbar restored');
+            }
+            
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar) {
+                sidebar.style.display = '';
+                console.log('Sidebar restored');
+            }
+        });
 
         // Destroy existing players
         if (this.currentPlayer) {
@@ -1860,3 +1940,26 @@ function toggleFullscreen() {
 
 // Initialize the application
 const player = new IPTVPlayer();
+
+// Force remove overlays when any modal is shown
+document.addEventListener('DOMContentLoaded', function() {
+    // Listen for modal events
+    document.addEventListener('show.bs.modal', (event) => {
+        // Force remove all loading overlays
+        const overlays = document.querySelectorAll('.loading-overlay, #loading-overlay, #content-loading-overlay');
+        overlays.forEach(overlay => {
+            overlay.classList.remove('active', 'd-flex');
+            overlay.classList.add('d-none');
+            overlay.style.display = 'none';
+            overlay.style.visibility = 'hidden';
+        });
+        
+        // Remove any stray overlays with high z-index
+        document.querySelectorAll('div[style*="z-index"]').forEach(el => {
+            const zIndex = parseInt(el.style.zIndex || '0');
+            if (zIndex > 1000 && zIndex < 9999 && !el.classList.contains('modal') && el.id !== 'player-modal') {
+                el.style.display = 'none';
+            }
+        });
+    });
+});
