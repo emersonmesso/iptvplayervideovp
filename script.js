@@ -850,73 +850,93 @@ class IPTVPlayer {
         // Destroy existing players
         if (this.currentPlayer) {
             this.currentPlayer.destroy();
+            this.currentPlayer = null;
         }
         if (this.plyrPlayer) {
             this.plyrPlayer.destroy();
+            this.plyrPlayer = null;
         }
 
-        // Initialize HLS with Plyr
+        // Reset video element
+        video.src = '';
+        video.load();
+
+        // Initialize HLS without Plyr for better compatibility
         if (Hls.isSupported()) {
             this.currentPlayer = new Hls({
                 debug: false,
                 enableWorker: true,
                 lowLatencyMode: true,
-                backBufferLength: 90
+                backBufferLength: 90,
+                maxBufferLength: 30,
+                maxMaxBufferLength: 60
             });
             
             this.currentPlayer.loadSource(item.url);
             this.currentPlayer.attachMedia(video);
             
-            // Initialize Plyr
-            this.plyrPlayer = new Plyr(video, {
-                controls: [
-                    'play-large',
-                    'restart',
-                    'rewind',
-                    'play',
-                    'fast-forward',
-                    'progress',
-                    'current-time',
-                    'duration',
-                    'mute',
-                    'volume',
-                    'captions',
-                    'settings',
-                    'pip',
-                    'airplay',
-                    'fullscreen'
-                ],
-                settings: ['captions', 'quality', 'speed'],
-                quality: {
-                    default: 'auto',
-                    options: ['auto']
-                }
-            });
-            
             this.currentPlayer.on(Hls.Events.MANIFEST_PARSED, () => {
-                video.play().catch(e => console.log('Autoplay prevented:', e));
+                console.log('HLS manifest parsed, starting playback');
+                // Force autoplay
+                video.muted = true; // Required for autoplay in many browsers
+                video.play().then(() => {
+                    console.log('Video started playing');
+                    // Unmute after a short delay
+                    setTimeout(() => {
+                        video.muted = false;
+                    }, 1000);
+                }).catch(e => {
+                    console.log('Autoplay prevented:', e);
+                    // Show play button or notification
+                    this.showPlayButton();
+                });
             });
 
             this.currentPlayer.on(Hls.Events.ERROR, (event, data) => {
                 console.error('HLS Error:', data);
                 if (data.fatal) {
-                    this.handlePlayerError(item);
+                    switch (data.type) {
+                        case Hls.ErrorTypes.NETWORK_ERROR:
+                            console.log('Network error, trying to recover...');
+                            this.currentPlayer.startLoad();
+                            break;
+                        case Hls.ErrorTypes.MEDIA_ERROR:
+                            console.log('Media error, trying to recover...');
+                            this.currentPlayer.recoverMediaError();
+                            break;
+                        default:
+                            console.log('Fatal error, cannot recover');
+                            this.handlePlayerError(item);
+                            break;
+                    }
                 }
             });
             
         } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
             // Native HLS support (Safari)
             video.src = item.url;
-            this.plyrPlayer = new Plyr(video);
-            video.play().catch(e => console.log('Autoplay prevented:', e));
+            video.muted = true;
+            video.play().then(() => {
+                console.log('Native HLS started playing');
+                setTimeout(() => {
+                    video.muted = false;
+                }, 1000);
+            }).catch(e => {
+                console.log('Autoplay prevented:', e);
+                this.showPlayButton();
+            });
         } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Navegador Incompatível',
-                text: 'Seu navegador não suporta reprodução de streams HLS.',
-                background: '#1e3c72',
-                color: '#ffffff',
-                confirmButtonColor: '#ffd700'
+            // Try direct playback
+            video.src = item.url;
+            video.muted = true;
+            video.play().then(() => {
+                console.log('Direct playback started');
+                setTimeout(() => {
+                    video.muted = false;
+                }, 1000);
+            }).catch(e => {
+                console.log('Direct playback failed:', e);
+                this.showPlayButton();
             });
         }
 
@@ -1589,6 +1609,28 @@ class IPTVPlayer {
                     color: '#ffffff',
                     confirmButtonColor: '#ffd700'
                 });
+            }
+        });
+    }
+
+    showPlayButton() {
+        const video = document.getElementById('video-player');
+        const playButton = document.createElement('div');
+        playButton.className = 'position-absolute top-50 start-50 translate-middle';
+        playButton.style.cssText = 'z-index: 1000; cursor: pointer;';
+        playButton.innerHTML = `
+            <div class="bg-dark bg-opacity-75 rounded-circle p-3" onclick="this.parentElement.style.display='none'; document.getElementById('video-player').play();">
+                <i class="fas fa-play text-white" style="font-size: 3rem; margin-left: 5px;"></i>
+            </div>
+        `;
+        
+        video.parentElement.style.position = 'relative';
+        video.parentElement.appendChild(playButton);
+        
+        // Remove play button when video starts
+        video.addEventListener('play', () => {
+            if (playButton.parentElement) {
+                playButton.remove();
             }
         });
     }

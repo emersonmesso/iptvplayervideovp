@@ -598,6 +598,29 @@ body {
     background: #000;
 }
 
+/* Ensure video controls are always visible */
+#video-player::-webkit-media-controls {
+    display: flex !important;
+    opacity: 1 !important;
+}
+
+#video-player::-webkit-media-controls-panel {
+    display: flex !important;
+    opacity: 1 !important;
+    background: rgba(0, 0, 0, 0.8) !important;
+}
+
+/* Make sure video controls don't auto-hide */
+video::-webkit-media-controls-enclosure {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+video {
+    -webkit-media-controls-timeline: block !important;
+    -webkit-media-controls-current-time-display: block !important;
+    -webkit-media-controls-time-remaining-display: block !important;
+}
+
 .player-info {
     padding: 1rem 2rem;
     background: rgba(0, 0, 0, 0.3);
