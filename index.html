@@ -376,6 +376,88 @@
             </div>
         </div>
 
+        <!-- Series Details Screen -->
+        <div id="series-details-screen" class="screen">
+            <nav class="navbar navbar-expand-lg navbar-dark bg-dark bg-opacity-90 fixed-top">
+                <div class="container-fluid">
+                    <a class="navbar-brand fw-bold" href="#" onclick="goBackToSeriesList()">
+                        <i class="fas fa-arrow-left me-2"></i>Voltar às Séries
+                    </a>
+                    <div class="navbar-nav ms-auto">
+                        <button class="btn btn-outline-light me-2" onclick="refreshContent()">
+                            <i class="fas fa-sync-alt me-1"></i>Atualizar
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="disconnect()">
+                            <i class="fas fa-sign-out-alt me-1"></i>Sair
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="container-fluid" style="margin-top: 56px; padding: 2rem;">
+                <div class="row">
+                    <!-- Informações da Série -->
+                    <div class="col-lg-4 col-xl-3">
+                        <div class="series-info-card bg-dark bg-opacity-75 rounded p-4 mb-4">
+                            <div id="series-poster-container" class="text-center mb-3">
+                                <img id="series-poster" src="" alt="Poster da Série" class="img-fluid rounded" style="max-height: 400px; object-fit: cover; width: 100%;">
+                            </div>
+                            <div id="series-info">
+                                <h3 id="series-name" class="text-white mb-3"></h3>
+                                <div class="mb-2">
+                                    <small class="text-muted">Ano:</small>
+                                    <span id="series-year" class="text-white ms-2"></span>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted">Avaliação:</small>
+                                    <span id="series-rating" class="text-warning ms-2"></span>
+                                </div>
+                                <div class="mb-2">
+                                    <small class="text-muted">Temporadas:</small>
+                                    <span id="series-seasons-count" class="text-white ms-2"></span>
+                                </div>
+                                <div class="mb-3">
+                                    <small class="text-muted">Total de Episódios:</small>
+                                    <span id="series-episodes-count" class="text-white ms-2"></span>
+                                </div>
+                                <div class="mb-3">
+                                    <small class="text-muted d-block mb-2">Sinopse:</small>
+                                    <p id="series-plot" class="text-white-50 small"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Temporadas e Episódios -->
+                    <div class="col-lg-8 col-xl-9">
+                        <div class="episodes-section bg-dark bg-opacity-75 rounded p-4">
+                            <!-- Seletor de Temporadas -->
+                            <div class="mb-4">
+                                <h4 class="text-white mb-3">
+                                    <i class="fas fa-list me-2"></i>Temporadas
+                                </h4>
+                                <div id="seasons-selector" class="d-flex flex-wrap gap-2">
+                                    <!-- Botões de temporadas serão inseridos aqui -->
+                                </div>
+                            </div>
+                            
+                            <!-- Lista de Episódios -->
+                            <div class="mb-3">
+                                <h5 class="text-white mb-3">
+                                    <i class="fas fa-play-circle me-2"></i>
+                                    <span id="current-season-title">Episódios</span>
+                                </h5>
+                            </div>
+                            
+                            <div id="episodes-container" style="max-height: 600px; overflow-y: auto;">
+                                <!-- Lista de episódios será inserida aqui -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Content Loading Overlay -->
         <div id="content-loading-overlay" class="position-fixed d-none justify-content-center align-items-center" 
              style="top: 56px; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 500;">

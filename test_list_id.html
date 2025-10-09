@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de List ID - IPTV Player Vector Player</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .test-link {
+            display: inline-block;
+            background: #ffd700;
+            color: #1e3c72;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 10px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .test-link:hover {
+            background: #ffed4e;
+            transform: translateY(-2px);
+        }
+        .info {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .info h3 {
+            color: #ffd700;
+            margin-top: 0;
+        }
+        .code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Teste de Funcionalidade List ID - Vector Player</h1>
+        
+        <div class="info">
+            <h3>📋 Como Funciona</h3>
+            <p>A funcionalidade <strong>list_id</strong> permite conectar automaticamente ao servidor IPTV usando apenas um ID na URL.</p>
+            
+            <p><strong>Quando você acessa uma URL com list_id:</strong></p>
+            <ol>
+                <li>O sistema detecta o parâmetro <code>list_id</code> na URL</li>
+                <li>Faz uma requisição para: <code>https://vectorplayer.com/api/v1/lista/get_premium_list?list_id={ID}</code></li>
+                <li>Extrai os dados do servidor da resposta</li>
+                <li>Conecta automaticamente usando as credenciais</li>
+                <li>Salva o servidor na lista de conexões recentes</li>
+            </ol>
+        </div>
+
+        <div class="info">
+            <h3>🧪 Exemplo de Teste</h3>
+            <p>Clique no link abaixo para testar a funcionalidade com o list_id 104092:</p>
+            <a href="index.html?list_id=104092" class="test-link">
+                🚀 Testar com List ID 104092
+            </a>
+            
+            <p><strong>Dados esperados para este ID:</strong></p>
+            <div class="code">Servidor: http://dns.ortotrauma.online:8080/
+Usuário: Ralphdelgado
+Senha: Ral663
+Status: Active
+Expira: 1762431935
+Conexões: 0/2</div>
+        </div>
+
+        <div class="info">
+            <h3>🔧 Resposta da API Vector Player</h3>
+            <p>A API retorna dados neste formato:</p>
+            <div class="code">{
+  "status": "sucess",
+  "version": "1.0.5",
+  "error": false,
+  "data": {
+    "id": "104092",
+    "url_servidor": "http://dns.ortotrauma.online:8080/",
+    "porta": "8080",
+    "usuario": "Ralphdelgado",
+    "senha": "Ral663",
+    "data_expira": "1762431935",
+    "max_con": "2",
+    "con_active": "0",
+    "status": "Active",
+    "json": "{...server_info...}"
+  }
+}</div>
+        </div>
+
+        <div class="info">
+            <h3>🔗 Outros Testes</h3>
+            <p>Você pode testar com qualquer list_id válido adicionando à URL:</p>
+            <div class="code">index.html?list_id=SEU_ID_AQUI</div>
+        </div>
+
+        <div class="info">
+            <h3>📱 Funcionalidades Implementadas</h3>
+            <ul>
+                <li>✅ Detecção automática do list_id na URL</li>
+                <li>✅ Requisição para API da Vector Player</li>
+                <li>✅ Processamento dos dados do servidor</li>
+                <li>✅ Conexão automática com Xtream Codes</li>
+                <li>✅ Salvamento em conexões recentes</li>
+                <li>✅ <strong>Prevenção de duplicatas</strong></li>
+                <li>✅ Fallback para conexões já salvas</li>
+                <li>✅ Tratamento de erros completo</li>
+                <li>✅ Interface informativa de conexão</li>
+                <li>✅ Notificação quando conexão é atualizada</li>
+            </ul>
+        </div>
+
+        <div class="info">
+            <h3>🚫 Sistema Anti-Duplicatas</h3>
+            <p><strong>Novo:</strong> O sistema agora previne duplicatas automaticamente!</p>
+            
+            <p><strong>Como funciona:</strong></p>
+            <ol>
+                <li>Verifica se a conexão já existe (URL + usuário para Xtream, URL para M3U, list_id para Vector Player)</li>
+                <li>Se existe, atualiza a data e move para o topo da lista</li>
+                <li>Se não existe, cria uma nova entrada</li>
+                <li>Mostra notificação sutil informando o que aconteceu</li>
+            </ol>
+            
+            <p><strong>Teste:</strong> Clique várias vezes no mesmo list_id e veja que não duplica!</p>
+        </div>
+
+        <p><a href="index.html" class="test-link">🏠 Voltar ao Player</a></p>
+    </div>
+            <div class="col-md-8">
+                <h1 class="text-center mb-4">
+                    <i class="fas fa-tv me-2"></i>Teste de List ID
+                </h1>
+                
+                <div class="card bg-secondary">
+                    <div class="card-header">
+                        <h5 class="mb-0">Como testar a funcionalidade List ID</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>Para testar a funcionalidade de conexão automática via <strong>list_id</strong>, siga os passos:</p>
+                        
+                        <h6 class="mt-4">1. Conecte-se primeiro manualmente:</h6>
+                        <ul>
+                            <li>Abra o player IPTV normalmente</li>
+                            <li>Conecte-se a um servidor (Xtream ou M3U)</li>
+                            <li>O servidor será salvo nas conexões recentes</li>
+                        </ul>
+                        
+                        <h6 class="mt-4">2. Teste com conexões recentes:</h6>
+                        <p>Adicione o parâmetro <code>list_id</code> na URL usando o ID de uma conexão recente:</p>
+                        <div class="bg-dark p-3 rounded">
+                            <code>index.html?list_id=123456789</code>
+                        </div>
+                        
+                        <h6 class="mt-4">3. Links de exemplo:</h6>
+                        <ul>
+                            <li><a href="index.html?list_id=12345" class="text-warning">index.html?list_id=12345</a></li>
+                            <li><a href="index.html?list_id=67890" class="text-warning">index.html?list_id=67890</a></li>
+                        </ul>
+                        
+                        <h6 class="mt-4">4. Para usar com sua API:</h6>
+                        <p>Modifique a função <code>fetchServerDataByListId()</code> no arquivo <code>script.js</code> para apontar para sua API:</p>
+                        <div class="bg-dark p-3 rounded">
+                            <pre><code>// Substitua esta URL pela sua API real
+const apiUrl = `https://sua-api.com/api/servers/${listId}`;
+
+// Sua API deve retornar dados no formato:
+{
+  "type": "xtream",
+  "url": "http://servidor.com:8080", 
+  "username": "usuario",
+  "password": "senha"
+}</code></pre>
+                        </div>
+                        
+                        <div class="alert alert-info mt-4">
+                            <h6><i class="fas fa-info-circle me-2"></i>Funcionalidades implementadas:</h6>
+                            <ul class="mb-0">
+                                <li>✅ Detecção automática de <code>list_id</code> na URL</li>
+                                <li>✅ Busca de dados do servidor por ID</li>
+                                <li>✅ Conexão automática (Xtream e M3U)</li>
+                                <li>✅ Salvamento nas conexões recentes</li>
+                                <li>✅ Fallback para conexões recentes e favoritos</li>
+                                <li>✅ Mensagens de erro e sucesso</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <a href="index.html" class="btn btn-warning btn-lg">
+                        <i class="fas fa-play me-2"></i>Abrir Player IPTV
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+</body>
+</html>
