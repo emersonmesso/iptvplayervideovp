@@ -1756,7 +1756,7 @@ class IPTVPlayer {
             rating: episodeInfo.rating || episode.rating || '',
             release_date: episodeInfo.release_date || episode.added || '',
             container_extension: episode.container_extension || 'mp4',
-            url: `${this.connectionData.url}/series/${this.connectionData.username}/${this.connectionData.password}/${episode.id || episode.stream_id}.${episode.container_extension || 'mp4'}`
+            url: `${this.connectionData.url}/serie/${this.connectionData.username}/${this.connectionData.password}/${episode.id || episode.stream_id}.mp4`
         };
         
         console.log(`Adding episode S${seasonNum}E${episodeNum}: ${episodeTitle}`, episodeData);
@@ -2113,7 +2113,7 @@ class IPTVPlayer {
             quality_info: qualityInfo,
             container_extension: episode.container_extension || 'mp4',
             season: seasonNumber,
-            url: `${this.connectionData.url}/series/${this.connectionData.username}/${this.connectionData.password}/${episode.id || episode.stream_id}.${episode.container_extension || 'mp4'}`
+            url: `${this.connectionData.url}series/${this.connectionData.username}/${this.connectionData.password}/${episode.id || episode.stream_id}.mp4`
         };
     }
 
